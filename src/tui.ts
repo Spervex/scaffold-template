@@ -1,20 +1,23 @@
 import {
-  intro,
-  outro,
-  text,
-  select,
-  groupMultiselect,
-  confirm,
-  isCancel,
   cancel,
+  confirm,
+  groupMultiselect,
+  intro,
+  isCancel,
+  outro,
+  select,
   spinner,
+  text,
 } from '@clack/prompts';
 import chalk from 'chalk';
+import { execa } from 'execa';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createProject } from './commands/create.js';
 import { repoInit } from './commands/repo-init.js';
-import { repoSync } from './commands/repo-sync.js';
 import { repoStatus } from './commands/repo-status.js';
-import { execa } from 'execa';
+import { repoSync } from './commands/repo-sync.js';
+import { ALL_EXTRAS } from './shared/packages.js';
 import {
   type CliOptions,
   type Database,
@@ -23,16 +26,15 @@ import {
   type FrontendFramework,
   type PackageManager,
   type ProjectType,
-  CreateError,
-  RepoError,
 } from './types.js';
-import { ALL_EXTRAS } from './shared/packages.js';
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
-
-function isKebabCase(str: string): boolean {
-  return /^[a-z][a-z0-9-]*[a-z0-9]$/.test(str);
-}
+import {
+  hasBackend,
+  hasFrontend,
+  isVite,
+  isKebabCase,
+  needsDatabase,
+  showTuiError,
+} from './tui-helpers.js';
 
 function handleCancel<T>(value: T | symbol): T {
   if (isCancel(value)) {
@@ -51,8 +53,16 @@ async function mainMenu(): Promise<void> {
     await select({
       message: 'What would you like to do?',
       options: [
-        { value: 'create', label: 'Create a new project', hint: 'Scaffold frontend, backend, or full-stack projects' },
-        { value: 'repo', label: 'Manage dual-repo setup', hint: 'Init, sync, or view status of source-of-truth + public repos' },
+        {
+          value: 'create',
+          label: 'Create a new project',
+          hint: 'Scaffold frontend, backend, or full-stack projects',
+        },
+        {
+          value: 'repo',
+          label: 'Manage dual-repo setup',
+          hint: 'Init, sync, or view status of source-of-truth + public repos',
+        },
         { value: 'dev-tools', label: 'Dev tools', hint: 'Cleanup test projects, utilities' },
         { value: 'exit', label: 'Exit' },
       ],
@@ -98,19 +108,28 @@ async function createProjectWizard(): Promise<void> {
     await select({
       message: 'Select project type',
       options: [
-        { value: 'fullstack-vite', label: 'Vite + Express', hint: 'Vite React frontend + Express backend' },
-        { value: 'fullstack-nextjs', label: 'Next.js (fullstack)', hint: 'Next.js with API routes (no Express needed)' },
+        {
+          value: 'fullstack-vite',
+          label: 'Vite + Express',
+          hint: 'Vite React frontend + Express backend',
+        },
+        {
+          value: 'fullstack-nextjs',
+          label: 'Next.js (fullstack)',
+          hint: 'Next.js with API routes (no Express needed)',
+        },
         { value: 'frontend', label: 'Frontend only', hint: 'Vite or Next.js' },
         { value: 'backend', label: 'Backend only', hint: 'Express API server' },
         { value: 'system', label: 'System', hint: 'Blank project structure' },
+        { value: 'cli', label: 'CLI tool', hint: 'Command-line app with Commander' },
+        { value: 'tui', label: 'TUI tool', hint: 'Terminal UI with interactive prompts' },
       ],
     })
   ) as ProjectType;
 
   // 3. Database
-  const hasDatabase = projectType === 'backend' || projectType === 'fullstack-vite' || projectType === 'fullstack-nextjs';
   let database: Database = 'mongodb';
-  if (hasDatabase) {
+  if (needsDatabase(projectType)) {
     database = handleCancel(
       await select({
         message: 'Select database',
@@ -142,7 +161,11 @@ async function createProjectWizard(): Promise<void> {
 
   // 5. Frontend directory name
   let frontendDirName: FolderName = 'client';
-  if (projectType === 'frontend' || projectType === 'fullstack-vite' || projectType === 'fullstack-nextjs') {
+  if (
+    projectType === 'frontend' ||
+    projectType === 'fullstack-vite' ||
+    projectType === 'fullstack-nextjs'
+  ) {
     frontendDirName = handleCancel(
       await select({
         message: 'Frontend directory name',
@@ -156,7 +179,11 @@ async function createProjectWizard(): Promise<void> {
 
   // 6. Backend directory name
   let backendDirName: FolderName = 'server';
-  if (projectType === 'backend' || projectType === 'fullstack-vite' || projectType === 'fullstack-nextjs') {
+  if (
+    projectType === 'backend' ||
+    projectType === 'fullstack-vite' ||
+    projectType === 'fullstack-nextjs'
+  ) {
     backendDirName = handleCancel(
       await select({
         message: 'Backend directory name',
@@ -198,7 +225,11 @@ async function createProjectWizard(): Promise<void> {
       message: 'Repository setup',
       options: [
         { value: { git: true, dualRepo: false }, label: 'Initialize git', hint: 'Basic git init' },
-        { value: { git: false, dualRepo: true }, label: 'Initialize dual-repo', hint: 'Source-of-truth + public repos via gh CLI' },
+        {
+          value: { git: false, dualRepo: true },
+          label: 'Initialize dual-repo',
+          hint: 'Source-of-truth + public repos via gh CLI',
+        },
         { value: { git: false, dualRepo: false }, label: 'Skip', hint: 'No repository setup' },
       ],
     })
@@ -208,9 +239,6 @@ async function createProjectWizard(): Promise<void> {
   const dualRepo = repoChoice.dualRepo;
 
   // 10. Extra packages — select all, skip all, or choose individually
-  const hasBackend = projectType === 'backend' || projectType === 'fullstack-vite' || projectType === 'fullstack-nextjs';
-  const hasFrontend = projectType === 'frontend' || projectType === 'fullstack-vite' || projectType === 'fullstack-nextjs';
-  const isVite = frontendFramework === 'vite' || projectType === 'fullstack-vite';
 
   const extrasChoice = handleCancel(
     await select({
@@ -229,9 +257,12 @@ async function createProjectWizard(): Promise<void> {
     selectedExtras = [...ALL_EXTRAS];
   } else if (extrasChoice === 'custom') {
     // Build grouped options dynamically based on project type
-    const groupedOptions: Record<string, Array<{ value: string; label: string; hint?: string; selected?: boolean }>> = {};
+    const groupedOptions: Record<
+      string,
+      Array<{ value: string; label: string; hint?: string; selected?: boolean }>
+    > = {};
 
-    if (hasBackend) {
+    if (hasBackend(projectType)) {
       groupedOptions['Backend Features'] = [
         { value: 'auth', label: 'Auth', hint: 'argon2 + jsonwebtoken', selected: true },
         { value: 'compression', label: 'Compression', hint: 'gzip responses' },
@@ -241,8 +272,13 @@ async function createProjectWizard(): Promise<void> {
       ];
     }
 
-    if (hasFrontend) {
-      const frontendOptions: Array<{ value: string; label: string; hint?: string; selected?: boolean }> = [
+    if (hasFrontend(projectType)) {
+      const frontendOptions: Array<{
+        value: string;
+        label: string;
+        hint?: string;
+        selected?: boolean;
+      }> = [
         { value: 'zustand', label: 'Zustand', hint: 'State management', selected: true },
         { value: 'tailwindcss', label: 'Tailwind CSS', hint: 'Styling framework', selected: true },
         { value: 'tanstack-query', label: 'TanStack Query + Axios', hint: 'Data fetching' },
@@ -253,8 +289,13 @@ async function createProjectWizard(): Promise<void> {
         { value: 'shadcn', label: 'shadcn/ui', hint: 'Component library + CLI' },
       ];
       // Only show React Router for Vite projects (Next.js uses file-based routing)
-      if (isVite) {
-        frontendOptions.unshift({ value: 'react-router', label: 'React Router', hint: 'Client routing', selected: true });
+      if (isVite(frontendFramework, projectType)) {
+        frontendOptions.unshift({
+          value: 'react-router',
+          label: 'React Router',
+          hint: 'Client routing',
+          selected: true,
+        });
       }
       groupedOptions['Frontend Features'] = frontendOptions;
     }
@@ -271,11 +312,13 @@ async function createProjectWizard(): Promise<void> {
       { value: 'prettier', label: 'Prettier', hint: 'Code formatter' },
     ];
 
-    const extras = handleCancel(await groupMultiselect({
-      message: 'Select additional packages',
-      options: groupedOptions,
-      required: false,
-    }));
+    const extras = handleCancel(
+      await groupMultiselect({
+        message: 'Select additional packages',
+        options: groupedOptions,
+        required: false,
+      })
+    );
     selectedExtras = extras as ExtraPackage[];
   }
 
@@ -301,12 +344,7 @@ async function createProjectWizard(): Promise<void> {
     s.stop(chalk.green('Project created successfully!'));
   } catch (error) {
     s.stop(chalk.red('Failed to create project'));
-    if (error instanceof CreateError) {
-      console.error(chalk.red(`  ${error.message}`));
-    } else if (error instanceof Error) {
-      console.error(chalk.red(`  ${error.message}`));
-      if (process.env.DEBUG) console.error(error);
-    }
+    showTuiError(error);
   }
 
   // Initialize dual-repo if selected
@@ -359,27 +397,25 @@ async function createProjectWizard(): Promise<void> {
       const s2 = spinner();
       s2.start('Setting up dual-repo...');
       try {
-        await repoInit({
-          name: repoName,
-          publicSuffix,
-          sourceUrl: undefined,
-          publicUrl: undefined,
-          dir: projectPath,
-          sourceBranch: 'main',
-          publicBranch: 'main',
-          exclude: excludeStr.split(',').map((s: string) => s.trim()),
-          yes: true,
-          initialVersion: '1.0.0',
-        }, scaffoldDir);
+        await repoInit(
+          {
+            name: repoName,
+            publicSuffix,
+            sourceUrl: undefined,
+            publicUrl: undefined,
+            dir: projectPath,
+            sourceBranch: 'main',
+            publicBranch: 'main',
+            exclude: excludeStr.split(',').map((s: string) => s.trim()),
+            yes: true,
+            initialVersion: '1.0.0',
+          },
+          scaffoldDir
+        );
         s2.stop(chalk.green('Dual-repo setup complete!'));
       } catch (error) {
         s2.stop(chalk.red('Dual-repo setup failed'));
-        if (error instanceof RepoError) {
-          console.error(chalk.red(`  ${error.message}`));
-        } else if (error instanceof Error) {
-          console.error(chalk.red(`  ${error.message}`));
-          if (process.env.DEBUG) console.error(error);
-        }
+        showTuiError(error);
       }
     }
   }
@@ -409,9 +445,21 @@ async function repoMenu(): Promise<void> {
     await select({
       message: 'Dual-repo management',
       options: [
-        { value: 'init', label: 'Initialize dual-repo setup', hint: 'Set up source-of-truth + public repos' },
-        { value: 'sync', label: 'Sync changes to both repos', hint: 'Push to origin + public with filtering' },
-        { value: 'status', label: 'Show dual-repo status', hint: 'View current configuration and state' },
+        {
+          value: 'init',
+          label: 'Initialize dual-repo setup',
+          hint: 'Set up source-of-truth + public repos',
+        },
+        {
+          value: 'sync',
+          label: 'Sync changes to both repos',
+          hint: 'Push to origin + public with filtering',
+        },
+        {
+          value: 'status',
+          label: 'Show dual-repo status',
+          hint: 'View current configuration and state',
+        },
         { value: 'back', label: 'Back to main menu' },
       ],
     })
@@ -443,12 +491,8 @@ async function repoMenu(): Promise<void> {
       }
     }
   } catch (error) {
-    if (error instanceof RepoError) {
-      console.error(chalk.red(`\n${error.message}`));
-    } else if (error instanceof Error) {
-      console.error(chalk.red(`\nUnexpected error: ${error.message}`));
-      if (process.env.DEBUG) console.error(error);
-    }
+    console.error('');
+    showTuiError(error);
   }
 
   const nextAction = handleCancel(
@@ -477,7 +521,11 @@ async function repoInitWizard(baseDir: string): Promise<void> {
     await select({
       message: 'How would you like to set up the repos?',
       options: [
-        { value: 'auto', label: 'Auto-setup via GitHub CLI', hint: 'Create repos with gh (requires gh auth)' },
+        {
+          value: 'auto',
+          label: 'Auto-setup via GitHub CLI',
+          hint: 'Create repos with gh (requires gh auth)',
+        },
         { value: 'manual', label: 'Manual URL entry', hint: 'Provide existing repo URLs' },
       ],
     })
@@ -528,17 +576,20 @@ async function repoInitWizard(baseDir: string): Promise<void> {
 
     const s = spinner();
     s.start('Initializing dual-repo setup...');
-    await repoInit({
-      name: repoName,
-      publicSuffix,
-      sourceUrl: undefined,
-      publicUrl: undefined,
-      dir: undefined,
-      sourceBranch: 'main',
-      publicBranch: 'main',
-      exclude: excludeStr.split(',').map((s: string) => s.trim()),
-      yes: true,
-    }, baseDir);
+    await repoInit(
+      {
+        name: repoName,
+        publicSuffix,
+        sourceUrl: undefined,
+        publicUrl: undefined,
+        dir: undefined,
+        sourceBranch: 'main',
+        publicBranch: 'main',
+        exclude: excludeStr.split(',').map((s: string) => s.trim()),
+        yes: true,
+      },
+      baseDir
+    );
     s.stop(chalk.green('Dual-repo setup complete!'));
   } else {
     const sourceUrl = handleCancel(
@@ -573,17 +624,20 @@ async function repoInitWizard(baseDir: string): Promise<void> {
 
     const s = spinner();
     s.start('Initializing dual-repo setup...');
-    await repoInit({
-      name: undefined,
-      publicSuffix: '-public',
-      sourceUrl,
-      publicUrl,
-      dir: undefined,
-      sourceBranch: 'main',
-      publicBranch: 'main',
-      exclude: excludeStr.split(',').map((s: string) => s.trim()),
-      yes: true,
-    }, baseDir);
+    await repoInit(
+      {
+        name: undefined,
+        publicSuffix: '-public',
+        sourceUrl,
+        publicUrl,
+        dir: undefined,
+        sourceBranch: 'main',
+        publicBranch: 'main',
+        exclude: excludeStr.split(',').map((s: string) => s.trim()),
+        yes: true,
+      },
+      baseDir
+    );
     s.stop(chalk.green('Dual-repo setup complete!'));
   }
 }
@@ -597,7 +651,11 @@ async function devToolsMenu(): Promise<void> {
     await select({
       message: 'Dev tools',
       options: [
-        { value: 'cleanup-test', label: 'Clean up test project', hint: 'Delete local dir + GitHub repos created during testing' },
+        {
+          value: 'cleanup-test',
+          label: 'Clean up test project',
+          hint: 'Delete local dir + GitHub repos created during testing',
+        },
         { value: 'back', label: 'Back to main menu' },
       ],
     })

@@ -1,8 +1,16 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { ViteGenerator, NextjsGenerator, MernGenerator, FullstackGenerator, NextjsFullstackGenerator, SystemGenerator } from '../generators/index.js';
+import {
+  ToolGenerator,
+  ViteGenerator,
+  NextjsGenerator,
+  MernGenerator,
+  FullstackGenerator,
+  SystemGenerator,
+} from '../generators/index.js';
 import { type CliOptions, CreateError } from '../types.js';
 import { logger } from '../utils/logger.js';
+import { isKebabCase, projectTypeLabel } from '../tui-helpers.js';
 import { execa } from 'execa';
 
 export async function createProject(options: CliOptions): Promise<void> {
@@ -15,9 +23,9 @@ export async function createProject(options: CliOptions): Promise<void> {
     await fs.access(projectPath);
     throw new CreateError(
       `Directory "${options.projectDir}" already exists. Please choose a different name or location.`,
-      'DIR_EXISTS',
+      'DIR_EXISTS'
     );
-    } catch (_err) {
+  } catch (_err) {
     if (_err instanceof CreateError) throw _err;
     // Directory doesn't exist, which is what we want
   }
@@ -51,7 +59,7 @@ export async function createProject(options: CliOptions): Promise<void> {
         break;
       }
       case 'fullstack-nextjs': {
-        const gen = new NextjsFullstackGenerator(options);
+        const gen = new NextjsGenerator(options);
         result = await gen.generate();
         break;
       }
@@ -60,14 +68,17 @@ export async function createProject(options: CliOptions): Promise<void> {
         result = await gen.generate();
         break;
       }
+      case 'cli':
+      case 'tui': {
+        const gen = new ToolGenerator(options);
+        result = await gen.generate();
+        break;
+      }
       default: {
-        throw new CreateError(
-          `Unknown project type: ${options.projectType}`,
-          'INVALID_TYPE',
-        );
+        throw new CreateError(`Unknown project type: ${options.projectType}`, 'INVALID_TYPE');
       }
     }
-    } catch (err) {
+  } catch (err) {
     // Clean up on failure
     await fs.rm(projectPath, { recursive: true, force: true }).catch(() => {});
     throw err;
@@ -91,11 +102,10 @@ export async function createProject(options: CliOptions): Promise<void> {
 }
 
 function validateProjectName(name: string): void {
-  const kebabCaseRegex = /^[a-z][a-z0-9-]*[a-z0-9]$/;
-  if (!kebabCaseRegex.test(name)) {
+  if (!isKebabCase(name)) {
     throw new CreateError(
       `Invalid project name "${name}". Project name must be in kebab-case (lowercase letters, numbers, and hyphens only, cannot start or end with a hyphen).`,
-      'INVALID_NAME',
+      'INVALID_NAME'
     );
   }
 }
@@ -108,7 +118,7 @@ async function installDependencies(projectPath: string, packageManager: string):
   try {
     await execa(cmd, ['install', '--ignore-scripts'], {
       cwd: projectPath,
-      stdio: 'pipe',  // capture all output — suppress pnpm's progress bar garbage
+      stdio: 'pipe', // capture all output — suppress pnpm's progress bar garbage
     });
     logger.success('Dependencies installed');
   } catch (error) {
@@ -151,20 +161,17 @@ function printSuccessMessage(options: CliOptions, projectPath: string): void {
 
   logger.info(`  Project: ${options.projectName}`);
   logger.info(`  Location: ${projectPath}`);
-  const dbDisplay = options.database === 'postgresql' ? 'PostgreSQL (Prisma)' : 'MongoDB (Mongoose)';
-  const typeDisplay = options.projectType === 'fullstack-vite'
-    ? 'fullstack (Vite + Express)'
-    : options.projectType === 'fullstack-nextjs'
-      ? `fullstack (Next.js + ${dbDisplay})`
-      : options.projectType === 'backend'
-        ? `backend (Express + ${dbDisplay})`
-        : options.projectType;
+  const dbDisplay =
+    options.database === 'postgresql' ? 'PostgreSQL (Prisma)' : 'MongoDB (Mongoose)';
+  const typeDisplay = projectTypeLabel(options.projectType, dbDisplay);
   logger.info(`  Type: ${typeDisplay}`);
   if (options.projectType === 'frontend' || options.projectType === 'fullstack-vite') {
     logger.info(`  Frontend: ${options.frontendFramework} (./${options.frontendDirName})`);
   }
   if (options.projectType === 'backend' || options.projectType === 'fullstack-vite') {
-    logger.info(`  Backend: ${options.frontendDirName ? `Express (./${options.backendDirName})` : `Express (./${options.backendDirName})`}`);
+    logger.info(
+      `  Backend: ${options.frontendDirName ? `Express (./${options.backendDirName})` : `Express (./${options.backendDirName})`}`
+    );
   }
   logger.info(`  Package manager: ${options.packageManager}`);
 
@@ -182,23 +189,37 @@ function printSuccessMessage(options: CliOptions, projectPath: string): void {
     logger.info(`    ${options.packageManager} install`);
   }
 
-  if (options.projectType === 'frontend') {
-    const devCmd = options.frontendFramework === 'nextjs' ? `${options.packageManager} dev` : `${options.packageManager} dev`;
-    logger.info(`    ${devCmd}`);
-  } else if (options.projectType === 'backend') {
-    logger.info(`    cp ${options.backendDirName}/.env.example ${options.backendDirName}/.env`);
-    logger.info(`    ${options.packageManager} --filter ${options.backendDirName} dev`);
-  } else if (options.projectType === 'fullstack-vite') {
-    if (options.packageManager === 'pnpm') {
-      logger.info(`    ${options.packageManager} dev  # runs both frontend and backend`);
+  const nextSteps: string[] = [];
+
+  if (options.projectType === 'fullstack-nextjs' || options.projectType === 'fullstack-vite') {
+    if (options.projectType !== 'fullstack-nextjs') {
+      // fullstack-vite with pnpm
+      if (options.packageManager === 'pnpm') {
+        nextSteps.push(`${options.packageManager} dev  # runs both frontend and backend`);
+      } else {
+        nextSteps.push('# In separate terminals:');
+        nextSteps.push(`cd ${options.frontendDirName} && ${options.packageManager} dev`);
+        nextSteps.push(`cd ${options.backendDirName} && ${options.packageManager} dev`);
+      }
     } else {
-      logger.info(`    # In separate terminals:`);
-      logger.info(`    cd ${options.frontendDirName} && ${options.packageManager} dev`);
-      logger.info(`    cd ${options.backendDirName} && ${options.packageManager} dev`);
+      // fullstack-nextjs — standalone
+      nextSteps.push(`cp .env.example .env`);
+      nextSteps.push(`${options.packageManager} dev`);
     }
-  } else if (options.projectType === 'fullstack-nextjs') {
-    logger.info(`    cp .env.example .env`);
-    logger.info(`    ${options.packageManager} dev`);
+  } else if (options.projectType === 'backend') {
+    nextSteps.push(`cp ${options.backendDirName}/.env.example ${options.backendDirName}/.env`);
+    nextSteps.push(`${options.packageManager} --filter ${options.backendDirName} dev`);
+  } else if (
+    options.projectType === 'cli' ||
+    options.projectType === 'tui' ||
+    options.projectType === 'system' ||
+    options.projectType === 'frontend'
+  ) {
+    nextSteps.push(`${options.packageManager} dev`);
+  }
+
+  for (const step of nextSteps) {
+    logger.info(`    ${step}`);
   }
 
   logger.info('');

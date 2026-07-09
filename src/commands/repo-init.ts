@@ -1,7 +1,17 @@
 import path from 'node:path';
 import { type RepoInitOptions, RepoError } from '../types.js';
 import { logger } from '../utils/logger.js';
-import { getGitRoot, initRepo, addRemote, hasRemote, removeRemote, stageAll, commit, push } from '../utils/git.js';
+import { isKebabCase } from '../tui-helpers.js';
+import {
+  getGitRoot,
+  initRepo,
+  addRemote,
+  hasRemote,
+  removeRemote,
+  stageAll,
+  commit,
+  push,
+} from '../utils/git.js';
 import { saveFilterConfig } from '../utils/repo-filter.js';
 import { readSourceVersion } from '../utils/version.js';
 import { checkGh } from '../utils/gh.js';
@@ -34,7 +44,10 @@ function askYesNo(query: string, defaultYes: boolean): Promise<boolean> {
     rl.question(`${query} (${hint}): `, (answer) => {
       rl.close();
       const trimmed = answer.trim().toLowerCase();
-      if (!trimmed) { resolve(defaultYes); return; }
+      if (!trimmed) {
+        resolve(defaultYes);
+        return;
+      }
       resolve(trimmed === 'y' || trimmed === 'yes');
     });
   });
@@ -63,7 +76,9 @@ async function resolveRepoUrl(prompt: string, defaultUrl: string): Promise<strin
   if (!url) url = defaultUrl;
   url = normalizeGitHubUrl(url);
   if (!validateGitHubUrl(url)) {
-    logger.warn('Invalid GitHub URL format. Expected: owner/repo, https://github.com/owner/repo, or git@github.com:owner/repo');
+    logger.warn(
+      'Invalid GitHub URL format. Expected: owner/repo, https://github.com/owner/repo, or git@github.com:owner/repo'
+    );
     return resolveRepoUrl(prompt, defaultUrl);
   }
   return url;
@@ -76,9 +91,7 @@ export async function repoInit(options: RepoInitOptions, baseDir: string): Promi
   logger.info('');
 
   const yesMode = options.yes;
-  const rootDir = options.dir
-    ? path.resolve(options.dir)
-    : (process.env.INIT_CWD || process.cwd());
+  const rootDir = options.dir ? path.resolve(options.dir) : process.env.INIT_CWD || process.cwd();
 
   // Determine which flow to use: auto-setup (name provided) or explicit URLs (sourceUrl provided)
   const useAutoSetup = !!options.name && !options.sourceUrl;
@@ -96,7 +109,7 @@ export async function repoInit(options: RepoInitOptions, baseDir: string): Promi
     const publicSuffix = options.publicSuffix;
 
     // 1. Validate name is kebab-case
-    if (!/^[a-z][a-z0-9-]*[a-z0-9]$/.test(baseName)) {
+    if (!isKebabCase(baseName)) {
       throw new RepoError(
         `Invalid repo name "${baseName}". Must be kebab-case (lowercase letters, numbers, hyphens, cannot start/end with hyphen).`,
         'INVALID_NAME'
@@ -148,7 +161,7 @@ export async function repoInit(options: RepoInitOptions, baseDir: string): Promi
     }
 
     // 5. Read source version
-    const sourceVersion = options.initialVersion ?? await readSourceVersion(baseDir);
+    const sourceVersion = options.initialVersion ?? (await readSourceVersion(baseDir));
 
     // 6. Init git repo (if not already)
     if (!alreadyRepo) {
@@ -171,20 +184,27 @@ export async function repoInit(options: RepoInitOptions, baseDir: string): Promi
 
     // 8. Stage everything and create initial commit (now includes repo-filter.json)
     await stageAll(rootDir);
-    await commit(rootDir, `chore(repo): initialize dual-repo setup
+    await commit(
+      rootDir,
+      `chore(repo): initialize dual-repo setup
 
 Source-of-truth: ${fullSourceName}
 Public: ${fullPublicName}
 Version: ${sourceVersion}
-Excluded from public: ${options.exclude.join(', ')}`);
+Excluded from public: ${options.exclude.join(', ')}`
+    );
 
     // 9. Create private repo and push via gh
     logger.step(`Creating private repo: ${fullSourceName}...`);
     const ghCreateArgs = [
-      'repo', 'create', fullSourceName,
+      'repo',
+      'create',
+      fullSourceName,
       '--private',
-      '--source', '.',
-      '--remote', 'origin',
+      '--source',
+      '.',
+      '--remote',
+      'origin',
       '--push',
     ];
     await execa('gh', ghCreateArgs, { cwd: rootDir, stdio: 'inherit' });
@@ -194,10 +214,14 @@ Excluded from public: ${options.exclude.join(', ')}`);
     // 10. Create public repo (push happens after filtering)
     logger.step(`Creating public repo: ${fullPublicName}...`);
     const ghPublicArgs = [
-      'repo', 'create', fullPublicName,
+      'repo',
+      'create',
+      fullPublicName,
       '--public',
-      '--source', '.',
-      '--remote', 'public',
+      '--source',
+      '.',
+      '--remote',
+      'public',
     ];
     // Don't use --push here because we need to filter first
     await execa('gh', ghPublicArgs, { cwd: rootDir, stdio: 'inherit' });
@@ -207,7 +231,10 @@ Excluded from public: ${options.exclude.join(', ')}`);
     // 11. Remove excluded files from tracking for public push
     for (const pattern of options.exclude) {
       try {
-        await execa('git', ['rm', '-r', '--cached', '--ignore-unmatch', pattern], { cwd: rootDir, stdio: 'pipe' });
+        await execa('git', ['rm', '-r', '--cached', '--ignore-unmatch', pattern], {
+          cwd: rootDir,
+          stdio: 'pipe',
+        });
       } catch {
         // Pattern doesn't exist or is not tracked
       }
@@ -216,16 +243,22 @@ Excluded from public: ${options.exclude.join(', ')}`);
     // 12. Commit filtered tree (only if there are staged changes)
     const hasExcludes = await hasStagedChanges(rootDir);
     if (hasExcludes) {
-      await commit(rootDir, `chore(repo): initialize public repo
+      await commit(
+        rootDir,
+        `chore(repo): initialize public repo
 
 Public version: ${sourceVersion}
-Excludes: ${options.exclude.join(', ')}`);
+Excludes: ${options.exclude.join(', ')}`
+      );
     } else {
       logger.info('No excluded files to filter, skipping filtered commit');
     }
 
     // 13. Push filtered tree to public repo (use current branch dynamically)
-    const { stdout: currentBranch } = await execa('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: rootDir, stdio: 'pipe' });
+    const { stdout: currentBranch } = await execa('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+      cwd: rootDir,
+      stdio: 'pipe',
+    });
     await push(rootDir, 'public', currentBranch.trim());
 
     // 14. Restore full tree locally (re-add excluded files to index)
@@ -241,11 +274,13 @@ Excludes: ${options.exclude.join(', ')}`);
     // 15. Commit full tree locally so HEAD matches index (clears staged changes)
     const hasRestored = await hasStagedChanges(rootDir);
     if (hasRestored) {
-      await commit(rootDir, `chore(repo): restore full source tree
+      await commit(
+        rootDir,
+        `chore(repo): restore full source tree
 
-Local working state with full tree (not pushed to either remote)`);
+Local working state with full tree (not pushed to either remote)`
+      );
     }
-
   } else {
     // ── Explicit URLs flow (existing behavior) ─────────
     let explicitSourceUrl = options.sourceUrl;
@@ -259,7 +294,10 @@ Local working state with full tree (not pushed to either remote)`);
       if (hasOrigin) {
         logger.warn('This project already has git remotes configured.');
         if (!yesMode) {
-          const proceed = await askYesNo('Reinitialize repo setup? This may overwrite existing configuration.', false);
+          const proceed = await askYesNo(
+            'Reinitialize repo setup? This may overwrite existing configuration.',
+            false
+          );
           if (!proceed) {
             logger.info('Aborted.');
             return;
@@ -276,7 +314,10 @@ Local working state with full tree (not pushed to either remote)`);
       );
     }
     if (!explicitSourceUrl) {
-      throw new RepoError('Source-of-truth repo URL is required. Use --source-url or provide it interactively.', 'NO_SOURCE_URL');
+      throw new RepoError(
+        'Source-of-truth repo URL is required. Use --source-url or provide it interactively.',
+        'NO_SOURCE_URL'
+      );
     }
     sourceUrl = normalizeGitHubUrl(explicitSourceUrl);
 
@@ -288,7 +329,10 @@ Local working state with full tree (not pushed to either remote)`);
       );
     }
     if (!explicitPublicUrl) {
-      throw new RepoError('Public repo URL is required. Use --public-url or provide it interactively.', 'NO_PUBLIC_URL');
+      throw new RepoError(
+        'Public repo URL is required. Use --public-url or provide it interactively.',
+        'NO_PUBLIC_URL'
+      );
     }
     publicUrl = normalizeGitHubUrl(explicitPublicUrl);
 
@@ -312,7 +356,7 @@ Local working state with full tree (not pushed to either remote)`);
     }
 
     // Read source version
-    const sourceVersion = options.initialVersion ?? await readSourceVersion(baseDir);
+    const sourceVersion = options.initialVersion ?? (await readSourceVersion(baseDir));
 
     // Init git repo
     if (!alreadyRepo) {
@@ -350,16 +394,20 @@ Local working state with full tree (not pushed to either remote)`);
     if (!alreadyRepo) {
       logger.step('Creating initial commit...');
       await stageAll(rootDir);
-      await commit(rootDir, `chore(repo): initialize dual-repo setup
+      await commit(
+        rootDir,
+        `chore(repo): initialize dual-repo setup
 
 Source-of-truth: ${sourceUrl}
 Public: ${publicUrl}
 Version: ${sourceVersion}
-Excluded from public: ${options.exclude.join(', ')}`);
+Excluded from public: ${options.exclude.join(', ')}`
+      );
     }
 
     // Push to source-of-truth
-    const pushToSource = yesMode || await askYesNo('Push initial commit to source-of-truth?', true);
+    const pushToSource =
+      yesMode || (await askYesNo('Push initial commit to source-of-truth?', true));
     if (pushToSource) {
       await push(rootDir, 'origin', options.sourceBranch);
     }

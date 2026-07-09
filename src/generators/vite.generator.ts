@@ -1,8 +1,13 @@
 import path from 'node:path';
 import { BaseGenerator } from './base.generator.js';
-import { type CliOptions, type FileDefinition, type GeneratorResult } from '../types.js';
-import { logger } from '../utils/logger.js';
-import { mergeDeps, applyExtras } from '../shared/packages.js';
+import { type CliOptions, type FileDefinition } from '../types.js';
+import { mergeDeps } from '../shared/packages.js';
+import {
+  VITE_TS_CONFIG_ROOT,
+  VITE_TS_CONFIG_APP,
+  VITE_TS_CONFIG_NODE,
+  GITIGNORE_DEFAULT,
+} from '../shared/configs.js';
 
 function getVitePackageJson(options: CliOptions): Record<string, unknown> {
   const base = {
@@ -33,73 +38,20 @@ function getVitePackageJson(options: CliOptions): Record<string, unknown> {
   return mergeDeps(base, options, false) as Record<string, unknown>;
 }
 
-const VITE_TS_CONFIG_ROOT = {
-  files: [],
-  references: [
-    { path: './tsconfig.app.json' },
-    { path: './tsconfig.node.json' },
-  ],
-};
-
-const VITE_TS_CONFIG_APP = {
-  compilerOptions: {
-    target: 'ES2020',
-    useDefineForClassFields: true,
-    lib: ['ES2020', 'DOM', 'DOM.Iterable'],
-    module: 'ESNext',
-    skipLibCheck: true,
-    moduleResolution: 'bundler',
-    allowImportingTsExtensions: true,
-    isolatedModules: true,
-    moduleDetection: 'force',
-    noEmit: true,
-    jsx: 'react-jsx',
-    strict: true,
-    noUnusedLocals: true,
-    noUnusedParameters: true,
-    noFallthroughCasesInSwitch: true,
-    forceConsistentCasingInFileNames: true,
-    baseUrl: '.',
-    paths: {
-      '@/*': ['src/*'],
-    },
-  },
-  include: ['src'],
-};
-
-const VITE_TS_CONFIG_NODE = {
-  compilerOptions: {
-    target: 'ES2022',
-    lib: ['ES2023'],
-    module: 'ESNext',
-    skipLibCheck: true,
-    moduleResolution: 'bundler',
-    allowImportingTsExtensions: true,
-    isolatedModules: true,
-    moduleDetection: 'force',
-    noEmit: true,
-    strict: true,
-    noUnusedLocals: true,
-    noUnusedParameters: true,
-    noFallthroughCasesInSwitch: true,
-  },
-  include: ['vite.config.ts'],
-};
-
 export class ViteGenerator extends BaseGenerator {
-  async generate(): Promise<GeneratorResult> {
-    logger.step('Generating Vite + React + TypeScript project...');
-
-    const dir = this.resolvePath(this.options.frontendDirName);
-    const files: FileDefinition[] = this.getFiles(dir);
-
-    await this.writeFiles(files);
-
-    logger.success(`Vite project created in ${dir}`);
-    return { filesCreated: files.length, dir };
+  protected getStepLabel(): string {
+    return 'Generating Vite + React + TypeScript project...';
   }
 
-  private getFiles(dir: string): FileDefinition[] {
+  protected getTargetDir(): string {
+    return this.resolvePath(this.options.frontendDirName);
+  }
+
+  protected getSuccessMessage(dir: string): string {
+    return `Vite project created in ${dir}`;
+  }
+
+  protected buildFiles(dir: string): FileDefinition[] {
     const files: FileDefinition[] = [
       {
         path: path.join(dir, 'package.json'),
@@ -332,12 +284,7 @@ body {
       },
       {
         path: path.join(dir, '.gitignore'),
-        content: `node_modules
-dist
-.env
-.env.local
-*.tsbuildinfo
-`,
+        content: GITIGNORE_DEFAULT,
       },
       {
         path: path.join(dir, 'README.md'),
@@ -379,10 +326,6 @@ pnpm dev
         content: '',
       },
     ];
-
-    // Add extra files from selected packages
-    const { files: extraFiles } = applyExtras(this.options, dir);
-    files.push(...extraFiles);
 
     return files;
   }

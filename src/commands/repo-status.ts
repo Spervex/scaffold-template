@@ -25,13 +25,17 @@ export async function repoStatus(baseDir: string): Promise<void> {
   logger.info('');
   logger.info('  Remotes:');
   if (hasOrigin) {
-    const { stdout: originUrl } = await execa('git', ['remote', 'get-url', 'origin'], { cwd: rootDir });
+    const { stdout: originUrl } = await execa('git', ['remote', 'get-url', 'origin'], {
+      cwd: rootDir,
+    });
     logger.info(`    ✓ origin → ${originUrl} (source-of-truth)`);
   } else {
     logger.warn('    ✗ origin — not configured');
   }
   if (hasPublic) {
-    const { stdout: publicUrl } = await execa('git', ['remote', 'get-url', 'public'], { cwd: rootDir });
+    const { stdout: publicUrl } = await execa('git', ['remote', 'get-url', 'public'], {
+      cwd: rootDir,
+    });
     logger.info(`    ✓ public → ${publicUrl} (public)`);
   } else {
     logger.warn('    ✗ public — not configured');
@@ -47,12 +51,14 @@ export async function repoStatus(baseDir: string): Promise<void> {
     if (status.modified.length > 0) {
       logger.info('  Modified:');
       for (const f of status.modified.slice(0, 10)) logger.info(`    M ${f}`);
-      if (status.modified.length > 10) logger.info(`    ... and ${status.modified.length - 10} more`);
+      if (status.modified.length > 10)
+        logger.info(`    ... and ${status.modified.length - 10} more`);
     }
     if (status.untracked.length > 0) {
       logger.info('  Untracked:');
       for (const f of status.untracked.slice(0, 10)) logger.info(`    ? ${f}`);
-      if (status.untracked.length > 10) logger.info(`    ... and ${status.untracked.length - 10} more`);
+      if (status.untracked.length > 10)
+        logger.info(`    ... and ${status.untracked.length - 10} more`);
     }
   }
 
@@ -64,7 +70,9 @@ export async function repoStatus(baseDir: string): Promise<void> {
     logger.info('');
     logger.info('  Versions:');
     logger.info(`    Source-of-truth: v${sourceVersion}`);
-    logger.info(`    Public:          v${publicVersion} (${filterConfig.publicRepo.versionOffset} offset)`);
+    logger.info(
+      `    Public:          v${publicVersion} (${filterConfig.publicRepo.versionOffset} offset)`
+    );
   } catch {
     // Version may not be configured yet
   }

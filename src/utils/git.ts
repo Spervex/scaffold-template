@@ -19,7 +19,10 @@ export async function isGitRepo(dir: string): Promise<boolean> {
 
 export async function getGitRoot(dir: string): Promise<string | null> {
   try {
-    const { stdout } = await execa('git', ['rev-parse', '--show-toplevel'], { cwd: dir, stdio: 'pipe' });
+    const { stdout } = await execa('git', ['rev-parse', '--show-toplevel'], {
+      cwd: dir,
+      stdio: 'pipe',
+    });
     return stdout.trim();
   } catch {
     return null;
@@ -66,7 +69,10 @@ export async function push(dir: string, remote: string, branch: string): Promise
 }
 
 export async function getCurrentBranch(dir: string): Promise<string> {
-  const { stdout } = await execa('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: dir, stdio: 'pipe' });
+  const { stdout } = await execa('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+    cwd: dir,
+    stdio: 'pipe',
+  });
   return stdout.trim();
 }
 

@@ -21,7 +21,11 @@ export async function loadFilterConfig(baseDir: string): Promise<RepoFilterConfi
   try {
     const content = await fs.readFile(filterPath, 'utf-8');
     const parsed = JSON.parse(content) as RepoFilterConfig;
-    return { ...DEFAULT_FILTER_CONFIG, ...parsed, publicRepo: { ...DEFAULT_FILTER_CONFIG.publicRepo, ...parsed.publicRepo } };
+    return {
+      ...DEFAULT_FILTER_CONFIG,
+      ...parsed,
+      publicRepo: { ...DEFAULT_FILTER_CONFIG.publicRepo, ...parsed.publicRepo },
+    };
   } catch {
     logger.warn(`No filter config found at ${filterPath}, using defaults`);
     return structuredClone(DEFAULT_FILTER_CONFIG);
@@ -51,7 +55,10 @@ export function filterFilesForPublic(trackedFiles: string[], excludePatterns: st
   return trackedFiles.filter((file) => !isExcluded(file, excludePatterns));
 }
 
-export async function createPublicGitignore(baseDir: string, excludePatterns: string[]): Promise<void> {
+export async function createPublicGitignore(
+  baseDir: string,
+  excludePatterns: string[]
+): Promise<void> {
   const gitignorePath = path.join(baseDir, '.gitignore');
   let existing = '';
   try {
@@ -60,7 +67,9 @@ export async function createPublicGitignore(baseDir: string, excludePatterns: st
     // No existing .gitignore
   }
 
-  const publicExcludes = excludePatterns.map((p) => `# Excluded from public repo\n/${p}/`).join('\n');
+  const publicExcludes = excludePatterns
+    .map((p) => `# Excluded from public repo\n/${p}/`)
+    .join('\n');
   const content = existing
     ? `${existing}\n\n# ── Public repo excludes ──\n${publicExcludes}\n`
     : `# ── Public repo excludes ──\n${publicExcludes}\n`;

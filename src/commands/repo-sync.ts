@@ -26,10 +26,7 @@ export async function repoSync(options: RepoSyncOptions, baseDir: string): Promi
   // 1. Verify we're in a git repo
   const gitRoot = await getGitRoot(rootDir);
   if (!gitRoot || path.resolve(gitRoot) !== path.resolve(rootDir)) {
-    throw new RepoError(
-      'Not a git repository. Run "pnpm cli:dev repo init" first.',
-      'NOT_A_REPO'
-    );
+    throw new RepoError('Not a git repository. Run "pnpm cli:dev repo init" first.', 'NOT_A_REPO');
   }
 
   // 2. Check for clean working directory
@@ -121,18 +118,24 @@ export async function repoSync(options: RepoSyncOptions, baseDir: string): Promi
     // Remove from git tracking if it exists
     try {
       // Check if pattern exists in the repo
-      await execa('git', ['rm', '-r', '--cached', '--ignore-unmatch', pattern], { cwd: rootDir, stdio: 'pipe' });
+      await execa('git', ['rm', '-r', '--cached', '--ignore-unmatch', pattern], {
+        cwd: rootDir,
+        stdio: 'pipe',
+      });
     } catch {
       // Pattern doesn't exist, skip
     }
   }
 
   // Re-commit with only public files
-  await commit(rootDir, `chore(repo): sync public repo v${publicVersion}
+  await commit(
+    rootDir,
+    `chore(repo): sync public repo v${publicVersion}
 
 Source-of-truth version: ${sourceVersion}
 Public version: ${publicVersion}
-Excludes: ${excludePatterns.join(', ')}`);
+Excludes: ${excludePatterns.join(', ')}`
+  );
 
   // Push to public
   await push(rootDir, 'public', currentBranch);

@@ -2,10 +2,17 @@ import { BaseGenerator } from './base.generator.js';
 import { ViteGenerator } from './vite.generator.js';
 import { NextjsGenerator } from './nextjs.generator.js';
 import { MernGenerator } from './mern.generator.js';
-import { type GeneratorResult } from '../types.js';
+import { type FileDefinition, type GeneratorResult } from '../types.js';
 import { logger } from '../utils/logger.js';
+import { GITIGNORE_ROOT } from '../shared/configs.js';
 
 export class FullstackGenerator extends BaseGenerator {
+  // FullstackGenerator overrides generate() entirely, so buildFiles is never
+  // called via the template method. Provide a stub to satisfy the abstract contract.
+  protected buildFiles(_dir: string): FileDefinition[] {
+    return [];
+  }
+
   async generate(): Promise<GeneratorResult> {
     logger.header('Generating fullstack project...');
     logger.info('');
@@ -41,16 +48,7 @@ export class FullstackGenerator extends BaseGenerator {
     const files: Array<{ path: string; content: string }> = [
       {
         path: this.resolvePath('.gitignore'),
-        content: `node_modules
-dist
-.env
-.env.local
-*.log
-*.tsbuildinfo
-.pnpm-store
-.next
-out
-`,
+        content: GITIGNORE_ROOT,
       },
     ];
 
@@ -79,13 +77,13 @@ out
   - '${this.options.frontendDirName}'
   - '${this.options.backendDirName}'
 `,
-        },
+        }
       );
     }
 
     await this.writeFiles(files);
 
-    const names = files.map(f => f.path.split('\\').pop() || f.path.split('/').pop());
+    const names = files.map((f) => f.path.split('\\').pop() || f.path.split('/').pop());
     logger.info(`Root files created: ${names.join(', ')}`);
   }
 }

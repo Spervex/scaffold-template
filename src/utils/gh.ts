@@ -17,7 +17,7 @@ export async function checkGh(): Promise<GhUserInfo> {
     const match = stdout.match(/(?:account|as)\s+(\S+)/);
     if (!match || !match[1]) {
       throw new RepoError(
-        'Could not detect GitHub username from gh auth status. Make sure you\'re logged in with `gh auth login`.',
+        "Could not detect GitHub username from gh auth status. Make sure you're logged in with `gh auth login`.",
         'GH_AUTH_PARSE_ERROR'
       );
     }
@@ -31,17 +31,21 @@ export async function checkGh(): Promise<GhUserInfo> {
   }
 }
 
-/**
- * Create a private GitHub repository.
- * Returns the HTTPS clone URL.
- */
-export async function createPrivateRepo(name: string, description?: string): Promise<string> {
-  logger.step(`Creating private repo: ${name}...`);
+export async function createGhRepo(
+  name: string,
+  options: { visibility: 'private' | 'public'; remoteName: string; description?: string }
+): Promise<string> {
+  const { visibility, remoteName, description } = options;
+  logger.step(`Creating ${visibility} repo: ${name}...`);
   const args = [
-    'repo', 'create', name,
-    '--private',
-    '--source', '.',
-    '--remote', 'origin',
+    'repo',
+    'create',
+    name,
+    `--${visibility}`,
+    '--source',
+    '.',
+    '--remote',
+    remoteName,
     '--push',
   ];
   if (description) {
@@ -50,43 +54,12 @@ export async function createPrivateRepo(name: string, description?: string): Pro
 
   try {
     const { stdout } = await execa('gh', args, { stdio: 'pipe' });
-    logger.success(`Private repo created: ${name}`);
-    // Extract URL from output
+    logger.success(`${visibility === 'private' ? 'Private' : 'Public'} repo created: ${name}`);
     const urlMatch = stdout.match(/https:\/\/github\.com\/[\w.-]+\/[\w.-]+(?:\.git)?/);
     return urlMatch ? urlMatch[0] : `https://github.com/${name}.git`;
   } catch (err) {
     throw new RepoError(
-      `Failed to create private repo "${name}": ${(err as Error).message}`,
-      'GH_CREATE_ERROR'
-    );
-  }
-}
-
-/**
- * Create a public GitHub repository.
- * Returns the HTTPS clone URL.
- */
-export async function createPublicRepo(name: string, description?: string): Promise<string> {
-  logger.step(`Creating public repo: ${name}...`);
-  const args = [
-    'repo', 'create', name,
-    '--public',
-    '--source', '.',
-    '--remote', 'public',
-    '--push',
-  ];
-  if (description) {
-    args.push('--description', description);
-  }
-
-  try {
-    const { stdout } = await execa('gh', args, { stdio: 'pipe' });
-    logger.success(`Public repo created: ${name}`);
-    const urlMatch = stdout.match(/https:\/\/github\.com\/[\w.-]+\/[\w.-]+(?:\.git)?/);
-    return urlMatch ? urlMatch[0] : `https://github.com/${name}.git`;
-  } catch (err) {
-    throw new RepoError(
-      `Failed to create public repo "${name}": ${(err as Error).message}`,
+      `Failed to create ${visibility} repo "${name}": ${(err as Error).message}`,
       'GH_CREATE_ERROR'
     );
   }
@@ -102,7 +75,7 @@ export async function createDualRepos(
   username: string,
   baseName: string,
   publicSuffix: string,
-  description?: string,
+  description?: string
 ): Promise<{ sourceRepo: string; publicRepo: string; sourceUrl: string; publicUrl: string }> {
   const sourceRepo = `${username}/${baseName}`;
   const publicRepo = `${username}/${baseName}${publicSuffix}`;
@@ -110,8 +83,16 @@ export async function createDualRepos(
   const fullDesc = description || `Scaffold template: ${baseName}`;
   const publicDesc = `${fullDesc} (public)`;
 
-  const sourceUrl = await createPrivateRepo(sourceRepo, fullDesc);
-  const publicUrl = await createPublicRepo(publicRepo, publicDesc);
+  const sourceUrl = await createGhRepo(sourceRepo, {
+    visibility: 'private',
+    remoteName: 'origin',
+    description: fullDesc,
+  });
+  const publicUrl = await createGhRepo(publicRepo, {
+    visibility: 'public',
+    remoteName: 'public',
+    description: publicDesc,
+  });
 
   return { sourceRepo, publicRepo, sourceUrl, publicUrl };
 }

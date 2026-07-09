@@ -1,4 +1,5 @@
-export type ProjectType = 'frontend' | 'backend' | 'fullstack-vite' | 'fullstack-nextjs' | 'system';
+export type ProjectType =
+  'frontend' | 'backend' | 'fullstack-vite' | 'fullstack-nextjs' | 'system' | 'cli' | 'tui';
 export type FrontendFramework = 'vite' | 'nextjs';
 export type PackageManager = 'pnpm' | 'npm';
 export type FolderName = 'client' | 'frontend' | 'server' | 'backend';
@@ -6,13 +7,31 @@ export type Database = 'mongodb' | 'postgresql';
 
 export type ExtraPackage =
   // Backend features
-  | 'auth' | 'compression' | 'rate-limit' | 'email' | 'swagger'
+  | 'auth'
+  | 'compression'
+  | 'rate-limit'
+  | 'email'
+  | 'swagger'
   // Frontend features
-  | 'zustand' | 'tailwindcss' | 'tanstack-query' | 'react-router'
-  | 'shadcn' | 'lucide-react' | 'react-hot-toast' | 'motion' | 'gsap'
+  | 'zustand'
+  | 'tailwindcss'
+  | 'tanstack-query'
+  | 'react-router'
+  | 'shadcn'
+  | 'lucide-react'
+  | 'react-hot-toast'
+  | 'motion'
+  | 'gsap'
   // Cross-cutting
-  | 'redis' | 'slack' | 'sentry' | 'opentelemetry' | 'stripe'
-  | 'socket-io' | 'vitest' | 'playwright' | 'prettier';
+  | 'redis'
+  | 'slack'
+  | 'sentry'
+  | 'opentelemetry'
+  | 'stripe'
+  | 'socket-io'
+  | 'vitest'
+  | 'playwright'
+  | 'prettier';
 
 export type CliOptions = {
   projectName: string;
@@ -41,7 +60,7 @@ export type GeneratorResult = {
 export class CreateError extends Error {
   constructor(
     message: string,
-    public readonly code: string,
+    public readonly code: string
   ) {
     super(message);
     this.name = 'CreateError';
@@ -102,7 +121,7 @@ export type RepoSyncOptions = {
 export class RepoError extends Error {
   constructor(
     message: string,
-    public readonly code: string,
+    public readonly code: string
   ) {
     super(message);
     this.name = 'RepoError';

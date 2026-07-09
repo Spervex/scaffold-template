@@ -1,8 +1,14 @@
 import path from 'node:path';
 import { BaseGenerator } from './base.generator.js';
-import { type CliOptions, type FileDefinition, type GeneratorResult } from '../types.js';
-import { logger } from '../utils/logger.js';
-import { mergeDeps, applyExtras } from '../shared/packages.js';
+import { type CliOptions, type FileDefinition } from '../types.js';
+import { mergeDeps, addDatabaseDeps } from '../shared/packages.js';
+import {
+  TSCONFIG_NODE,
+  GITIGNORE_DEFAULT,
+  envDatabaseMongo,
+  envDatabasePostgres,
+} from '../shared/configs.js';
+import { pinoLoggerFile, prismaClientFile, prismaSchemaFile } from '../shared/file-snippets.js';
 
 function getMernPackageJson(options: CliOptions): Record<string, unknown> {
   const base: Record<string, unknown> = {
@@ -32,52 +38,33 @@ function getMernPackageJson(options: CliOptions): Record<string, unknown> {
   };
 
   // Add database-specific dependencies
-  if (options.database === 'mongodb') {
-    (base.dependencies as Record<string, string>).mongoose = '^9.6.1';
-  } else {
-    (base.dependencies as Record<string, string>)['@prisma/client'] = '^6.0.0';
-    (base.devDependencies as Record<string, string>).prisma = '^6.0.0';
-    (base.scripts as Record<string, string>)['db:generate'] = 'prisma generate';
-    (base.scripts as Record<string, string>)['db:push'] = 'prisma db push';
-  }
+  addDatabaseDeps(
+    base as unknown as {
+      dependencies: Record<string, string>;
+      devDependencies: Record<string, string>;
+      scripts: Record<string, string>;
+    },
+    options.database
+  );
 
   return mergeDeps(base, options, true) as Record<string, unknown>;
 }
 
-const MERN_TS_CONFIG = {
-  compilerOptions: {
-    target: 'ES2022',
-    module: 'NodeNext',
-    moduleResolution: 'NodeNext',
-    outDir: './dist',
-    rootDir: './src',
-    strict: true,
-    esModuleInterop: true,
-    sourceMap: true,
-    declaration: true,
-    skipLibCheck: true,
-    forceConsistentCasingInFileNames: true,
-    resolveJsonModule: true,
-  },
-  include: ['src/**/*'],
-  exclude: ['node_modules', 'dist'],
-};
-
 export class MernGenerator extends BaseGenerator {
-  async generate(): Promise<GeneratorResult> {
+  protected getStepLabel(): string {
     const dbLabel = this.options.database === 'postgresql' ? 'PostgreSQL' : 'MongoDB';
-    logger.step(`Generating backend project (Express + ${dbLabel})...`);
-
-    const dir = this.resolvePath(this.options.backendDirName);
-    const files: FileDefinition[] = this.getFiles(dir);
-
-    await this.writeFiles(files);
-
-    logger.success(`Backend created in ${dir}`);
-    return { filesCreated: files.length, dir };
+    return `Generating backend project (Express + ${dbLabel})...`;
   }
 
-  private getFiles(dir: string): FileDefinition[] {
+  protected getTargetDir(): string {
+    return this.resolvePath(this.options.backendDirName);
+  }
+
+  protected getSuccessMessage(dir: string): string {
+    return `Backend created in ${dir}`;
+  }
+
+  protected buildFiles(dir: string): FileDefinition[] {
     const isPostgres = this.options.database === 'postgresql';
     const files: FileDefinition[] = [
       // ── Root config files ──────────────────────────────────
@@ -87,31 +74,17 @@ export class MernGenerator extends BaseGenerator {
       },
       {
         path: path.join(dir, 'tsconfig.json'),
-        content: this.formatJson(MERN_TS_CONFIG),
+        content: this.formatJson(TSCONFIG_NODE),
       },
       {
         path: path.join(dir, '.env.example'),
         content: isPostgres
-          ? `PORT=5000
-NODE_ENV=development
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/myapp
-CORS_ORIGIN=http://localhost:5173
-`
-          : `PORT=5000
-NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/myapp
-CORS_ORIGIN=http://localhost:5173
-`,
+          ? envDatabasePostgres(this.options.projectName)
+          : envDatabaseMongo(this.options.projectName),
       },
       {
         path: path.join(dir, '.gitignore'),
-        content: `node_modules
-dist
-.env
-.env.local
-*.log
-*.tsbuildinfo
-`,
+        content: GITIGNORE_DEFAULT,
       },
       {
         path: path.join(dir, 'README.md'),
@@ -159,23 +132,7 @@ ${isPostgres ? '| `pnpm db:push` | Push schema changes to database |\n| `pnpm db
         ? [
             {
               path: path.join(dir, 'prisma', 'schema.prisma'),
-              content: `generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-`,
+              content: prismaSchemaFile(),
             },
           ]
         : []),
@@ -184,20 +141,7 @@ model User {
       {
         path: path.join(dir, 'src', 'config', 'database.ts'),
         content: isPostgres
-          ? `import { PrismaClient } from '@prisma/client';
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-export const prisma = globalForPrisma.prisma ?? new PrismaClient();
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
-
-export async function connectDatabase(): Promise<void> {
-  await prisma.$connect();
-}
-`
+          ? prismaClientFile()
           : `import mongoose from 'mongoose';
 import { env } from './env.js';
 import { logger } from './logger.js';
@@ -272,14 +216,7 @@ export function validateEnv(): void {
       // ── Logger ────────────────────────────────────────────
       {
         path: path.join(dir, 'src', 'config', 'logger.ts'),
-        content: `import pino from 'pino';
-
-export const logger = pino({
-  transport: process.env.NODE_ENV !== 'production'
-    ? { target: 'pino-pretty' }
-    : undefined,
-});
-`,
+        content: pinoLoggerFile(),
       },
 
       // ── Models (MongoDB only) ──────────────────────────────
@@ -695,10 +632,6 @@ export interface PaginationParams {
 `,
       },
     ];
-
-    // Add extra files from selected packages
-    const { files: extraFiles } = applyExtras(this.options, dir);
-    files.push(...extraFiles);
 
     return files;
   }

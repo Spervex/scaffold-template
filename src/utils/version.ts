@@ -50,11 +50,17 @@ export function bumpMajor(version: string): string {
 /**
  * Apply the configured version offset to a source version.
  */
-export function applyVersionOffset(sourceVersion: string, offset: 'major' | 'minor' | 'none'): string {
+export function applyVersionOffset(
+  sourceVersion: string,
+  offset: 'major' | 'minor' | 'none'
+): string {
   switch (offset) {
-    case 'major': return lagOneMajor(sourceVersion);
-    case 'minor': return lagOneMinor(sourceVersion);
-    case 'none': return sourceVersion;
+    case 'major':
+      return lagOneMajor(sourceVersion);
+    case 'minor':
+      return lagOneMinor(sourceVersion);
+    case 'none':
+      return sourceVersion;
   }
 }
 
@@ -80,6 +86,9 @@ export async function readSourceVersion(baseDir: string): Promise<string> {
     return config.version;
   } catch (err) {
     if (err instanceof RepoError) throw err;
-    throw new RepoError(`Cannot read setup.config.json: ${(err as Error).message}`, 'CONFIG_READ_ERROR');
+    throw new RepoError(
+      `Cannot read setup.config.json: ${(err as Error).message}`,
+      'CONFIG_READ_ERROR'
+    );
   }
 }
