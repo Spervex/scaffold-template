@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import { logger } from './utils/logger.js';
 import { runTui } from './tui.js';
+import { logger } from './utils/logger.js';
 
 process.on('unhandledRejection', (reason) => {
   logger.error('Unhandled rejection:');

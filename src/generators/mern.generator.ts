@@ -1,14 +1,15 @@
 import path from 'node:path';
-import { BaseGenerator } from './base.generator.js';
-import { type CliOptions, type FileDefinition } from '../types.js';
-import { mergeDeps, addDatabaseDeps } from '../shared/packages.js';
+
 import {
-  TSCONFIG_NODE,
-  GITIGNORE_DEFAULT,
   envDatabaseMongo,
   envDatabasePostgres,
+  GITIGNORE_DEFAULT,
+  TSCONFIG_NODE,
 } from '../shared/configs.js';
 import { pinoLoggerFile, prismaClientFile, prismaSchemaFile } from '../shared/file-snippets.js';
+import { addDatabaseDeps, mergeDeps } from '../shared/packages.js';
+import { type CliOptions, type FileDefinition } from '../types.js';
+import { BaseGenerator } from './base.generator.js';
 
 function getMernPackageJson(options: CliOptions): Record<string, unknown> {
   const base: Record<string, unknown> = {

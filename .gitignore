@@ -8,3 +8,29 @@ coverage/
 .env.*.local
 *.log
 .eslintcache
+
+# Knip
+knip-report.*
+knip.json
+
+# Husky
+.husky/_
+
+# Semgrep
+.semgrep/
+semgrep-results*
+
+# Fallow
+.fallow/
+
+# Sentry
+.sentryclirc
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

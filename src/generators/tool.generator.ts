@@ -1,9 +1,10 @@
 import path from 'node:path';
-import { BaseGenerator } from './base.generator.js';
-import { type CliOptions, type FileDefinition } from '../types.js';
-import { mergeDeps } from '../shared/packages.js';
-import { TSCONFIG_NODE, GITIGNORE_DEFAULT, ENV_BASIC } from '../shared/configs.js';
+
+import { ENV_BASIC, GITIGNORE_DEFAULT, TSCONFIG_NODE } from '../shared/configs.js';
 import { pinoLoggerFile } from '../shared/file-snippets.js';
+import { mergeDeps } from '../shared/packages.js';
+import { type CliOptions, type FileDefinition } from '../types.js';
+import { BaseGenerator } from './base.generator.js';
 
 function getToolPackageJson(options: CliOptions): Record<string, unknown> {
   const isTui = options.projectType === 'tui';

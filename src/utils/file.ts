@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
 import { type FileDefinition } from '../types.js';
 
 export async function ensureDir(dir: string): Promise<void> {

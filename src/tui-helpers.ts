@@ -1,5 +1,6 @@
 import chalk from 'chalk';
-import { type FrontendFramework, type ProjectType, CreateError, RepoError } from './types.js';
+
+import { CreateError, type FrontendFramework, type ProjectType, RepoError } from './types.js';
 
 export function hasBackend(type: ProjectType): boolean {
   return type === 'backend' || type === 'fullstack-vite' || type === 'fullstack-nextjs';

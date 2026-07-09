@@ -1,4 +1,5 @@
 import { execa } from 'execa';
+
 import { logger } from './logger.js';
 
 export type GitStatus = {

@@ -1,10 +1,10 @@
-import { BaseGenerator } from './base.generator.js';
-import { ViteGenerator } from './vite.generator.js';
-import { NextjsGenerator } from './nextjs.generator.js';
-import { MernGenerator } from './mern.generator.js';
+import { GITIGNORE_ROOT } from '../shared/configs.js';
 import { type FileDefinition, type GeneratorResult } from '../types.js';
 import { logger } from '../utils/logger.js';
-import { GITIGNORE_ROOT } from '../shared/configs.js';
+import { BaseGenerator } from './base.generator.js';
+import { MernGenerator } from './mern.generator.js';
+import { NextjsGenerator } from './nextjs.generator.js';
+import { ViteGenerator } from './vite.generator.js';
 
 export class FullstackGenerator extends BaseGenerator {
   // FullstackGenerator overrides generate() entirely, so buildFiles is never

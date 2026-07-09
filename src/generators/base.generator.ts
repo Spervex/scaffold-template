@@ -1,7 +1,8 @@
 import path from 'node:path';
+
+import { applyExtras } from '../shared/packages.js';
 import { type CliOptions, type FileDefinition, type GeneratorResult } from '../types.js';
 import { writeFiles } from '../utils/file.js';
-import { applyExtras } from '../shared/packages.js';
 import { logger } from '../utils/logger.js';
 
 export abstract class BaseGenerator {

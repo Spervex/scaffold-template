@@ -38,7 +38,9 @@ async function deleteGitHubRepo(repo) {
     await execa('gh', ['repo', 'delete', repo, '--yes'], { stdio: 'pipe' });
     console.log(`✅ Deleted GitHub repo: ${repo}`);
   } catch {
-    console.log(`⚠️  Could not delete GitHub repo: ${repo} (may not exist or gh not authenticated)`);
+    console.log(
+      `⚠️  Could not delete GitHub repo: ${repo} (may not exist or gh not authenticated)`
+    );
   }
 }
 

@@ -1,3 +1,6 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import {
   cancel,
   confirm,
@@ -11,13 +14,20 @@ import {
 } from '@clack/prompts';
 import chalk from 'chalk';
 import { execa } from 'execa';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+
 import { createProject } from './commands/create.js';
 import { repoInit } from './commands/repo-init.js';
 import { repoStatus } from './commands/repo-status.js';
 import { repoSync } from './commands/repo-sync.js';
 import { ALL_EXTRAS } from './shared/packages.js';
+import {
+  hasBackend,
+  hasFrontend,
+  isKebabCase,
+  isVite,
+  needsDatabase,
+  showTuiError,
+} from './tui-helpers.js';
 import {
   type CliOptions,
   type Database,
@@ -27,14 +37,6 @@ import {
   type PackageManager,
   type ProjectType,
 } from './types.js';
-import {
-  hasBackend,
-  hasFrontend,
-  isVite,
-  isKebabCase,
-  needsDatabase,
-  showTuiError,
-} from './tui-helpers.js';
 
 function handleCancel<T>(value: T | symbol): T {
   if (isCancel(value)) {

@@ -1,7 +1,8 @@
 import path from 'node:path';
-import { BaseGenerator } from './base.generator.js';
-import { type FileDefinition } from '../types.js';
+
 import { GITIGNORE_DEFAULT } from '../shared/configs.js';
+import { type FileDefinition } from '../types.js';
+import { BaseGenerator } from './base.generator.js';
 
 export class SystemGenerator extends BaseGenerator {
   protected getStepLabel(): string {

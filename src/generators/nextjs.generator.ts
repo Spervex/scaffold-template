@@ -1,19 +1,20 @@
 import path from 'node:path';
-import { BaseGenerator } from './base.generator.js';
-import { type CliOptions, type FileDefinition } from '../types.js';
-import { mergeDeps, addDatabaseDeps } from '../shared/packages.js';
+
 import {
-  TSCONFIG_NEXTJS,
-  GITIGNORE_NEXTJS,
   envNextjsMongo,
   envNextjsPostgres,
+  GITIGNORE_NEXTJS,
+  TSCONFIG_NEXTJS,
 } from '../shared/configs.js';
 import {
+  nextEnvDTsFile,
   pinoLoggerFile,
   prismaClientFile,
   prismaSchemaFile,
-  nextEnvDTsFile,
 } from '../shared/file-snippets.js';
+import { addDatabaseDeps, mergeDeps } from '../shared/packages.js';
+import { type CliOptions, type FileDefinition } from '../types.js';
+import { BaseGenerator } from './base.generator.js';
 
 function getNextjsPackageJson(options: CliOptions): Record<string, unknown> {
   const isFullstack = options.projectType === 'fullstack-nextjs';

@@ -1,4 +1,5 @@
 import path from 'node:path';
+
 import type { CliOptions, Database, ExtraPackage, FileDefinition } from '../types.js';
 
 // ── Default packages (always included per project type) ──

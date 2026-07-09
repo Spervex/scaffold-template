@@ -1,22 +1,24 @@
 import path from 'node:path';
-import { type RepoInitOptions, RepoError } from '../types.js';
-import { logger } from '../utils/logger.js';
+import readline from 'node:readline';
+
+import { execa } from 'execa';
+
 import { isKebabCase } from '../tui-helpers.js';
+import { RepoError, type RepoInitOptions } from '../types.js';
+import { checkGh } from '../utils/gh.js';
 import {
-  getGitRoot,
-  initRepo,
   addRemote,
+  commit,
+  getGitRoot,
   hasRemote,
+  initRepo,
+  push,
   removeRemote,
   stageAll,
-  commit,
-  push,
 } from '../utils/git.js';
+import { logger } from '../utils/logger.js';
 import { saveFilterConfig } from '../utils/repo-filter.js';
 import { readSourceVersion } from '../utils/version.js';
-import { checkGh } from '../utils/gh.js';
-import { execa } from 'execa';
-import readline from 'node:readline';
 
 async function hasStagedChanges(dir: string): Promise<boolean> {
   try {

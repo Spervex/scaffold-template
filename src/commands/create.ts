@@ -1,17 +1,19 @@
-import path from 'node:path';
 import fs from 'node:fs/promises';
+import path from 'node:path';
+
+import { execa } from 'execa';
+
 import {
+  FullstackGenerator,
+  MernGenerator,
+  NextjsGenerator,
+  SystemGenerator,
   ToolGenerator,
   ViteGenerator,
-  NextjsGenerator,
-  MernGenerator,
-  FullstackGenerator,
-  SystemGenerator,
 } from '../generators/index.js';
+import { isKebabCase, projectTypeLabel } from '../tui-helpers.js';
 import { type CliOptions, CreateError } from '../types.js';
 import { logger } from '../utils/logger.js';
-import { isKebabCase, projectTypeLabel } from '../tui-helpers.js';
-import { execa } from 'execa';
 
 export async function createProject(options: CliOptions): Promise<void> {
   // Validate project name
