@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { type FileDefinition } from '../types.js';
+import { assertSubpath } from './path-safe.js';
 
 export async function ensureDir(dir: string): Promise<void> {
   await fs.mkdir(dir, { recursive: true });
@@ -18,6 +19,12 @@ export async function writeFiles(files: FileDefinition[]): Promise<void> {
   }
 }
 
+/**
+ * Safely joins baseDir and relativePath, ensuring the result does not escape baseDir.
+ * Throws PathTraversalError if relativePath attempts directory traversal.
+ */
 export function formatFilePath(baseDir: string, relativePath: string): string {
-  return path.normalize(path.join(baseDir, relativePath));
+  const fullPath = path.resolve(baseDir, relativePath);
+  assertSubpath(baseDir, fullPath);
+  return fullPath;
 }

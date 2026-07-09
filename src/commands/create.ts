@@ -14,6 +14,7 @@ import {
 import { isKebabCase, projectTypeLabel } from '../tui-helpers.js';
 import { type CliOptions, CreateError } from '../types.js';
 import { logger } from '../utils/logger.js';
+import { assertSubpath } from '../utils/path-safe.js';
 
 export async function createProject(options: CliOptions): Promise<void> {
   // Validate project name
@@ -21,6 +22,10 @@ export async function createProject(options: CliOptions): Promise<void> {
 
   // Check if directory exists
   const projectPath = path.resolve(options.projectDir);
+
+  // Ensure project directory is within the current working directory
+  assertSubpath(process.cwd(), projectPath);
+
   try {
     await fs.access(projectPath);
     throw new CreateError(

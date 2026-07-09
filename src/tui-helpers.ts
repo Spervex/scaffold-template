@@ -22,6 +22,18 @@ export function isKebabCase(str: string): boolean {
   return /^[a-z][a-z0-9-]*[a-z0-9]$/.test(str);
 }
 
+/**
+ * Validates a project name for use in file paths.
+ * Returns an error message string if invalid, or undefined if valid.
+ */
+export function validateProjectName(name: string): string | undefined {
+  if (!name || !name.trim()) return 'Project name is required';
+  if (!isKebabCase(name.trim())) {
+    return 'Must be kebab-case (lowercase letters, numbers, and hyphens only, cannot start or end with a hyphen)';
+  }
+  return undefined;
+}
+
 export function showTuiError(error: unknown): void {
   if (error instanceof CreateError || error instanceof RepoError) {
     console.error(chalk.red(`  ${error.message}`));

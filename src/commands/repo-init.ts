@@ -17,6 +17,7 @@ import {
   stageAll,
 } from '../utils/git.js';
 import { logger } from '../utils/logger.js';
+import { assertSubpath } from '../utils/path-safe.js';
 import { saveFilterConfig } from '../utils/repo-filter.js';
 import { readSourceVersion } from '../utils/version.js';
 
@@ -94,6 +95,9 @@ export async function repoInit(options: RepoInitOptions, baseDir: string): Promi
 
   const yesMode = options.yes;
   const rootDir = options.dir ? path.resolve(options.dir) : process.env.INIT_CWD || process.cwd();
+  if (options.dir) {
+    assertSubpath(process.cwd(), rootDir);
+  }
 
   // Determine which flow to use: auto-setup (name provided) or explicit URLs (sourceUrl provided)
   const useAutoSetup = !!options.name && !options.sourceUrl;

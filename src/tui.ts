@@ -27,6 +27,7 @@ import {
   isVite,
   needsDatabase,
   showTuiError,
+  validateProjectName,
 } from './tui-helpers.js';
 import {
   type CliOptions,
@@ -673,10 +674,7 @@ async function devToolsMenu(): Promise<void> {
       await text({
         message: 'Project name to clean up',
         placeholder: 'asdasdasd',
-        validate: (value) => {
-          if (!value || !value.trim()) return 'Project name is required';
-          return undefined;
-        },
+        validate: (value) => validateProjectName(value ?? ''),
       })
     );
 
