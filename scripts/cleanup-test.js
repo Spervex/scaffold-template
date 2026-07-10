@@ -19,7 +19,16 @@ if (!projectName) {
 }
 
 const cwd = process.cwd();
-const projectPath = path.join(cwd, projectName);
+const resolvedCwd = path.resolve(cwd);
+const projectPath = path.resolve(cwd, projectName);
+
+// ── Path traversal guard: ensure path stays within CWD ──
+const cwdPrefix = resolvedCwd + path.sep;
+if (projectPath !== resolvedCwd && !projectPath.startsWith(cwdPrefix)) {
+  console.error(`❌ Error: Path "${projectPath}" is outside the current working directory.`);
+  console.error(`   Must be a subdirectory of "${resolvedCwd}".`);
+  process.exit(1);
+}
 
 // ── Step 1: Delete local directory ──
 async function deleteLocalProject() {
@@ -38,7 +47,9 @@ async function deleteGitHubRepo(repo) {
     await execa('gh', ['repo', 'delete', repo, '--yes'], { stdio: 'pipe' });
     console.log(`✅ Deleted GitHub repo: ${repo}`);
   } catch {
-    console.log(`⚠️  Could not delete GitHub repo: ${repo} (may not exist or gh not authenticated)`);
+    console.log(
+      `⚠️  Could not delete GitHub repo: ${repo} (may not exist or gh not authenticated)`
+    );
   }
 }
 

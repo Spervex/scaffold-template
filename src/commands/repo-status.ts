@@ -1,10 +1,12 @@
 import path from 'node:path';
+
 import { execa } from 'execa';
+
 import { RepoError } from '../types.js';
-import { logger } from '../utils/logger.js';
 import { getGitRoot, getStatus, hasRemote } from '../utils/git.js';
-import { loadFilterConfig, getPublicExcludeList } from '../utils/repo-filter.js';
-import { readSourceVersion, applyVersionOffset } from '../utils/version.js';
+import { logger } from '../utils/logger.js';
+import { getPublicExcludeList, loadFilterConfig } from '../utils/repo-filter.js';
+import { applyVersionOffset, readSourceVersion } from '../utils/version.js';
 
 export async function repoStatus(baseDir: string): Promise<void> {
   const rootDir = process.env.INIT_CWD || process.cwd();
@@ -65,14 +67,19 @@ export async function repoStatus(baseDir: string): Promise<void> {
   // Version info
   try {
     const sourceVersion = await readSourceVersion(baseDir);
-    const filterConfig = await loadFilterConfig(rootDir);
-    const publicVersion = applyVersionOffset(sourceVersion, filterConfig.publicRepo.versionOffset);
-    logger.info('');
-    logger.info('  Versions:');
-    logger.info(`    Source-of-truth: v${sourceVersion}`);
-    logger.info(
-      `    Public:          v${publicVersion} (${filterConfig.publicRepo.versionOffset} offset)`
-    );
+    if (sourceVersion) {
+      const filterConfig = await loadFilterConfig(rootDir);
+      const publicVersion = applyVersionOffset(
+        sourceVersion,
+        filterConfig.publicRepo.versionOffset
+      );
+      logger.info('');
+      logger.info('  Versions:');
+      logger.info(`    Source-of-truth: v${sourceVersion}`);
+      logger.info(
+        `    Public:          v${publicVersion} (${filterConfig.publicRepo.versionOffset} offset)`
+      );
+    }
   } catch {
     // Version may not be configured yet
   }

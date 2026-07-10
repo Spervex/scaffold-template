@@ -69,21 +69,6 @@ export class CreateError extends Error {
 
 // ── Repo Management Types ──
 
-export type RepoConfig = {
-  source: RepoRemoteConfig;
-  public: RepoPublicConfig;
-};
-
-export type RepoRemoteConfig = {
-  remote: string;
-  branch: string;
-  url?: string;
-};
-
-export type RepoPublicConfig = RepoRemoteConfig & {
-  exclude: string[];
-};
-
 export type RepoFilterConfig = {
   version: string;
   publicRepo: {

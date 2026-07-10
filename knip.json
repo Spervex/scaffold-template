@@ -1,0 +1,4 @@
+{
+  "entry": ["scripts/cleanup-test.js"],
+  "ignoreBinaries": ["gh", "fallow", "semgrep"]
+}

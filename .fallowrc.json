@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "entry": ["src/index.ts"],
+  "ignorePatterns": ["**/*.test.ts", "**/*.generated.ts", "node_modules/**", "dist/**"],
+  "ignoreExportsUsedInFile": true,
+  "rules": {
+    "unused-files": "warn",
+    "unused-exports": "warn",
+    "unused-dependencies": "warn",
+    "unused-types": "warn",
+    "duplicate-code": "warn",
+    "complexity": "warn"
+  }
+}

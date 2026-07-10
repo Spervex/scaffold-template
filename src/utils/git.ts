@@ -1,4 +1,5 @@
 import { execa } from 'execa';
+
 import { logger } from './logger.js';
 
 export type GitStatus = {
@@ -7,15 +8,6 @@ export type GitStatus = {
   untracked: string[];
   modified: string[];
 };
-
-export async function isGitRepo(dir: string): Promise<boolean> {
-  try {
-    await execa('git', ['rev-parse', '--git-dir'], { cwd: dir, stdio: 'pipe' });
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export async function getGitRoot(dir: string): Promise<string | null> {
   try {
@@ -68,7 +60,7 @@ export async function push(dir: string, remote: string, branch: string): Promise
   logger.success(`Pushed to ${remote}/${branch}`);
 }
 
-export async function getCurrentBranch(dir: string): Promise<string> {
+async function getCurrentBranch(dir: string): Promise<string> {
   const { stdout } = await execa('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
     cwd: dir,
     stdio: 'pipe',
@@ -101,29 +93,11 @@ export async function getStatus(dir: string): Promise<GitStatus> {
   };
 }
 
-export async function createBranch(dir: string, branch: string): Promise<void> {
-  await execa('git', ['checkout', '-b', branch], { cwd: dir, stdio: 'pipe' });
-  logger.info(`Switched to new branch: ${branch}`);
-}
-
-export async function checkout(dir: string, branch: string): Promise<void> {
-  await execa('git', ['checkout', branch], { cwd: dir, stdio: 'pipe' });
-}
-
 export async function forceAdd(dir: string, filePath: string): Promise<void> {
   await execa('git', ['add', '-f', filePath], { cwd: dir, stdio: 'pipe' });
-}
-
-export async function resetPath(dir: string, filePath: string): Promise<void> {
-  await execa('git', ['reset', filePath], { cwd: dir, stdio: 'pipe' }).catch(() => {});
 }
 
 export async function listTrackedFiles(dir: string): Promise<string[]> {
   const { stdout } = await execa('git', ['ls-files'], { cwd: dir, stdio: 'pipe' });
   return stdout.trim() ? stdout.split('\n') : [];
-}
-
-export async function setUserConfig(dir: string, name: string, email: string): Promise<void> {
-  await execa('git', ['config', 'user.name', name], { cwd: dir, stdio: 'pipe' });
-  await execa('git', ['config', 'user.email', email], { cwd: dir, stdio: 'pipe' });
 }

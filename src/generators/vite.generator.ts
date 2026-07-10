@@ -1,13 +1,14 @@
 import path from 'node:path';
-import { BaseGenerator } from './base.generator.js';
-import { type CliOptions, type FileDefinition } from '../types.js';
-import { mergeDeps } from '../shared/packages.js';
+
 import {
-  VITE_TS_CONFIG_ROOT,
+  GITIGNORE_DEFAULT,
   VITE_TS_CONFIG_APP,
   VITE_TS_CONFIG_NODE,
-  GITIGNORE_DEFAULT,
+  VITE_TS_CONFIG_ROOT,
 } from '../shared/configs.js';
+import { mergeDeps } from '../shared/packages.js';
+import { type CliOptions, type FileDefinition } from '../types.js';
+import { BaseGenerator } from './base.generator.js';
 
 function getVitePackageJson(options: CliOptions): Record<string, unknown> {
   const base = {

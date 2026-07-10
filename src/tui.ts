@@ -1,3 +1,6 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import {
   cancel,
   confirm,
@@ -11,13 +14,21 @@ import {
 } from '@clack/prompts';
 import chalk from 'chalk';
 import { execa } from 'execa';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+
 import { createProject } from './commands/create.js';
 import { repoInit } from './commands/repo-init.js';
 import { repoStatus } from './commands/repo-status.js';
 import { repoSync } from './commands/repo-sync.js';
 import { ALL_EXTRAS } from './shared/packages.js';
+import {
+  hasBackend,
+  hasFrontend,
+  isKebabCase,
+  isVite,
+  needsDatabase,
+  showTuiError,
+  validateProjectName,
+} from './tui-helpers.js';
 import {
   type CliOptions,
   type Database,
@@ -27,14 +38,6 @@ import {
   type PackageManager,
   type ProjectType,
 } from './types.js';
-import {
-  hasBackend,
-  hasFrontend,
-  isVite,
-  isKebabCase,
-  needsDatabase,
-  showTuiError,
-} from './tui-helpers.js';
 
 function handleCancel<T>(value: T | symbol): T {
   if (isCancel(value)) {
@@ -516,6 +519,22 @@ async function repoMenu(): Promise<void> {
   }
 }
 
+async function askInitialVersion(): Promise<string> {
+  return handleCancel(
+    await text({
+      message: 'Initial version',
+      placeholder: '1.0.0',
+      initialValue: '1.0.0',
+      validate: (value) => {
+        if (!value || !/^\d+\.\d+\.\d+$/.test(value.trim())) {
+          return 'Must be a valid semver (e.g., 1.0.0)';
+        }
+        return undefined;
+      },
+    })
+  );
+}
+
 async function repoInitWizard(baseDir: string): Promise<void> {
   const setupMethod = handleCancel(
     await select({
@@ -562,6 +581,8 @@ async function repoInitWizard(baseDir: string): Promise<void> {
       })
     );
 
+    const initialVersion = await askInitialVersion();
+
     const proceed = handleCancel(
       await confirm({
         message: 'Proceed with creating these repos?',
@@ -587,6 +608,7 @@ async function repoInitWizard(baseDir: string): Promise<void> {
         publicBranch: 'main',
         exclude: excludeStr.split(',').map((s: string) => s.trim()),
         yes: true,
+        initialVersion,
       },
       baseDir
     );
@@ -622,6 +644,8 @@ async function repoInitWizard(baseDir: string): Promise<void> {
       })
     );
 
+    const initialVersion = await askInitialVersion();
+
     const s = spinner();
     s.start('Initializing dual-repo setup...');
     await repoInit(
@@ -635,6 +659,7 @@ async function repoInitWizard(baseDir: string): Promise<void> {
         publicBranch: 'main',
         exclude: excludeStr.split(',').map((s: string) => s.trim()),
         yes: true,
+        initialVersion,
       },
       baseDir
     );
@@ -671,10 +696,7 @@ async function devToolsMenu(): Promise<void> {
       await text({
         message: 'Project name to clean up',
         placeholder: 'asdasdasd',
-        validate: (value) => {
-          if (!value || !value.trim()) return 'Project name is required';
-          return undefined;
-        },
+        validate: (value) => validateProjectName(value ?? ''),
       })
     );
 

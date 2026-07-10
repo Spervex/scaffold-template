@@ -1,22 +1,25 @@
 import path from 'node:path';
-import { type RepoInitOptions, RepoError } from '../types.js';
-import { logger } from '../utils/logger.js';
+import readline from 'node:readline';
+
+import { execa } from 'execa';
+
 import { isKebabCase } from '../tui-helpers.js';
+import { RepoError, type RepoInitOptions } from '../types.js';
+import { checkGh } from '../utils/gh.js';
 import {
-  getGitRoot,
-  initRepo,
   addRemote,
+  commit,
+  getGitRoot,
   hasRemote,
+  initRepo,
+  push,
   removeRemote,
   stageAll,
-  commit,
-  push,
 } from '../utils/git.js';
+import { logger } from '../utils/logger.js';
+import { assertSubpath } from '../utils/path-safe.js';
 import { saveFilterConfig } from '../utils/repo-filter.js';
 import { readSourceVersion } from '../utils/version.js';
-import { checkGh } from '../utils/gh.js';
-import { execa } from 'execa';
-import readline from 'node:readline';
 
 async function hasStagedChanges(dir: string): Promise<boolean> {
   try {
@@ -84,6 +87,10 @@ async function resolveRepoUrl(prompt: string, defaultUrl: string): Promise<strin
   return url;
 }
 
+async function resolveSourceVersion(options: RepoInitOptions, baseDir: string): Promise<string> {
+  return options.initialVersion ?? (await readSourceVersion(baseDir)) ?? '1.0.0';
+}
+
 export async function repoInit(options: RepoInitOptions, baseDir: string): Promise<void> {
   logger.header('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   logger.header('  Initialize Dual-Repo Setup');
@@ -92,6 +99,9 @@ export async function repoInit(options: RepoInitOptions, baseDir: string): Promi
 
   const yesMode = options.yes;
   const rootDir = options.dir ? path.resolve(options.dir) : process.env.INIT_CWD || process.cwd();
+  if (options.dir) {
+    assertSubpath(process.cwd(), rootDir);
+  }
 
   // Determine which flow to use: auto-setup (name provided) or explicit URLs (sourceUrl provided)
   const useAutoSetup = !!options.name && !options.sourceUrl;
@@ -160,8 +170,8 @@ export async function repoInit(options: RepoInitOptions, baseDir: string): Promi
       }
     }
 
-    // 5. Read source version
-    const sourceVersion = options.initialVersion ?? (await readSourceVersion(baseDir));
+    // 5. Read source version (fallback to 1.0.0 if no setup.config.json)
+    const sourceVersion = await resolveSourceVersion(options, baseDir);
 
     // 6. Init git repo (if not already)
     if (!alreadyRepo) {
@@ -355,8 +365,8 @@ Local working state with full tree (not pushed to either remote)`
       }
     }
 
-    // Read source version
-    const sourceVersion = options.initialVersion ?? (await readSourceVersion(baseDir));
+    // Read source version (fallback to 1.0.0 if no setup.config.json)
+    const sourceVersion = await resolveSourceVersion(options, baseDir);
 
     // Init git repo
     if (!alreadyRepo) {

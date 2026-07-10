@@ -1,19 +1,21 @@
-import path from 'node:path';
-import { execa } from 'execa';
 import { readFile, writeFile } from 'node:fs/promises';
-import { type RepoSyncOptions, RepoError } from '../types.js';
-import { logger } from '../utils/logger.js';
+import path from 'node:path';
+
+import { execa } from 'execa';
+
+import { RepoError, type RepoSyncOptions } from '../types.js';
 import {
+  commit,
+  forceAdd,
   getGitRoot,
   getStatus,
-  stageAll,
-  commit,
-  push,
   listTrackedFiles,
-  forceAdd,
+  push,
+  stageAll,
 } from '../utils/git.js';
-import { loadFilterConfig, filterFilesForPublic } from '../utils/repo-filter.js';
-import { readSourceVersion, applyVersionOffset } from '../utils/version.js';
+import { logger } from '../utils/logger.js';
+import { filterFilesForPublic, loadFilterConfig } from '../utils/repo-filter.js';
+import { applyVersionOffset, readSourceVersion } from '../utils/version.js';
 
 export async function repoSync(options: RepoSyncOptions, baseDir: string): Promise<void> {
   logger.header('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -46,8 +48,8 @@ export async function repoSync(options: RepoSyncOptions, baseDir: string): Promi
   const excludePatterns = filterConfig.publicRepo.exclude;
   logger.info(`  Excluding from public: ${excludePatterns.join(', ')}`);
 
-  // 4. Read source version
-  const sourceVersion = await readSourceVersion(baseDir);
+  // 4. Read source version (fallback to 1.0.0 if no setup.config.json)
+  const sourceVersion = (await readSourceVersion(baseDir)) ?? '1.0.0';
   const publicVersion = applyVersionOffset(sourceVersion, filterConfig.publicRepo.versionOffset);
   logger.info(`  Source version: ${sourceVersion} → Public version: ${publicVersion}`);
 

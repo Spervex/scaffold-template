@@ -1,0 +1,28 @@
+rules:
+  - id: typescript-no-any
+    pattern: |
+      :any
+    message: 'Avoid using `any` type. Use `unknown` instead.'
+    severity: WARNING
+    languages:
+      - typescript
+
+  - id: typescript-no-console-log
+    pattern: |
+      console.log(...)
+    message: 'Use the logger instead of console.log'
+    severity: WARNING
+    languages:
+      - typescript
+
+  - id: typescript-no-hardcoded-secrets
+    patterns:
+      - pattern: |
+          $VAR = "..."
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: (?i).*(password|secret|token|key|api_key).*
+    message: 'Potential hardcoded secret detected'
+    severity: ERROR
+    languages:
+      - typescript
