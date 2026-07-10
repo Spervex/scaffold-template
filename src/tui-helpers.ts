@@ -43,8 +43,6 @@ export function showTuiError(error: unknown): void {
   }
 }
 
-export const HEADER_LINE = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
-
 export function projectTypeLabel(type: ProjectType, database?: string): string {
   switch (type) {
     case 'fullstack-vite':
@@ -63,13 +61,3 @@ export function projectTypeLabel(type: ProjectType, database?: string): string {
       return 'system';
   }
 }
-
-export const TYPE_LABELS: Record<ProjectType, string> = {
-  'fullstack-vite': 'fullstack (Vite + Express)',
-  'fullstack-nextjs': 'fullstack (Next.js + PostgreSQL/MongoDB)',
-  backend: 'backend (Express + PostgreSQL/MongoDB)',
-  frontend: 'frontend',
-  cli: 'CLI tool (Commander)',
-  tui: 'TUI tool (@clack/prompts)',
-  system: 'system',
-};

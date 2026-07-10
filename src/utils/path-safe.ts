@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-export class PathTraversalError extends Error {
+class PathTraversalError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'PathTraversalError';

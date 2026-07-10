@@ -87,6 +87,10 @@ async function resolveRepoUrl(prompt: string, defaultUrl: string): Promise<strin
   return url;
 }
 
+async function resolveSourceVersion(options: RepoInitOptions, baseDir: string): Promise<string> {
+  return options.initialVersion ?? (await readSourceVersion(baseDir)) ?? '1.0.0';
+}
+
 export async function repoInit(options: RepoInitOptions, baseDir: string): Promise<void> {
   logger.header('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   logger.header('  Initialize Dual-Repo Setup');
@@ -167,7 +171,7 @@ export async function repoInit(options: RepoInitOptions, baseDir: string): Promi
     }
 
     // 5. Read source version (fallback to 1.0.0 if no setup.config.json)
-    const sourceVersion = options.initialVersion ?? (await readSourceVersion(baseDir)) ?? '1.0.0';
+    const sourceVersion = await resolveSourceVersion(options, baseDir);
 
     // 6. Init git repo (if not already)
     if (!alreadyRepo) {
@@ -362,7 +366,7 @@ Local working state with full tree (not pushed to either remote)`
     }
 
     // Read source version (fallback to 1.0.0 if no setup.config.json)
-    const sourceVersion = options.initialVersion ?? (await readSourceVersion(baseDir)) ?? '1.0.0';
+    const sourceVersion = await resolveSourceVersion(options, baseDir);
 
     // Init git repo
     if (!alreadyRepo) {

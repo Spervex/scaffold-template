@@ -519,6 +519,22 @@ async function repoMenu(): Promise<void> {
   }
 }
 
+async function askInitialVersion(): Promise<string> {
+  return handleCancel(
+    await text({
+      message: 'Initial version',
+      placeholder: '1.0.0',
+      initialValue: '1.0.0',
+      validate: (value) => {
+        if (!value || !/^\d+\.\d+\.\d+$/.test(value.trim())) {
+          return 'Must be a valid semver (e.g., 1.0.0)';
+        }
+        return undefined;
+      },
+    })
+  );
+}
+
 async function repoInitWizard(baseDir: string): Promise<void> {
   const setupMethod = handleCancel(
     await select({
@@ -565,19 +581,7 @@ async function repoInitWizard(baseDir: string): Promise<void> {
       })
     );
 
-    const initialVersion = handleCancel(
-      await text({
-        message: 'Initial version',
-        placeholder: '1.0.0',
-        initialValue: '1.0.0',
-        validate: (value) => {
-          if (!value || !/^\d+\.\d+\.\d+$/.test(value.trim())) {
-            return 'Must be a valid semver (e.g., 1.0.0)';
-          }
-          return undefined;
-        },
-      })
-    );
+    const initialVersion = await askInitialVersion();
 
     const proceed = handleCancel(
       await confirm({
@@ -640,19 +644,7 @@ async function repoInitWizard(baseDir: string): Promise<void> {
       })
     );
 
-    const initialVersion = handleCancel(
-      await text({
-        message: 'Initial version',
-        placeholder: '1.0.0',
-        initialValue: '1.0.0',
-        validate: (value) => {
-          if (!value || !/^\d+\.\d+\.\d+$/.test(value.trim())) {
-            return 'Must be a valid semver (e.g., 1.0.0)';
-          }
-          return undefined;
-        },
-      })
-    );
+    const initialVersion = await askInitialVersion();
 
     const s = spinner();
     s.start('Initializing dual-repo setup...');

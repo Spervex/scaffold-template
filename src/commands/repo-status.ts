@@ -67,15 +67,19 @@ export async function repoStatus(baseDir: string): Promise<void> {
   // Version info
   try {
     const sourceVersion = await readSourceVersion(baseDir);
-    if (!sourceVersion) return; // No version configured yet
-    const filterConfig = await loadFilterConfig(rootDir);
-    const publicVersion = applyVersionOffset(sourceVersion, filterConfig.publicRepo.versionOffset);
-    logger.info('');
-    logger.info('  Versions:');
-    logger.info(`    Source-of-truth: v${sourceVersion}`);
-    logger.info(
-      `    Public:          v${publicVersion} (${filterConfig.publicRepo.versionOffset} offset)`
-    );
+    if (sourceVersion) {
+      const filterConfig = await loadFilterConfig(rootDir);
+      const publicVersion = applyVersionOffset(
+        sourceVersion,
+        filterConfig.publicRepo.versionOffset
+      );
+      logger.info('');
+      logger.info('  Versions:');
+      logger.info(`    Source-of-truth: v${sourceVersion}`);
+      logger.info(
+        `    Public:          v${publicVersion} (${filterConfig.publicRepo.versionOffset} offset)`
+      );
+    }
   } catch {
     // Version may not be configured yet
   }

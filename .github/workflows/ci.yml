@@ -10,6 +10,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 env:
   NODE_VERSION: '22'
   PNPM_VERSION: '9.12.0'
@@ -20,6 +23,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:
@@ -50,6 +55,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:
@@ -77,6 +84,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:
@@ -92,13 +101,11 @@ jobs:
 
       - name: npm audit
         run: pnpm audit --audit-level=high
-        continue-on-error: true
 
       - name: Semgrep
-        uses: semgrep/semgrep-action@v1
+        uses: returntocorp/semgrep-action@v1
         with:
-          config: p/semgrep-rule-lints-typescript
-        continue-on-error: true
+          config: .semgrep.yml
 
   codeql:
     name: CodeQL
@@ -109,6 +116,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:

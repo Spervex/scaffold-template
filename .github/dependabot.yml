@@ -15,6 +15,7 @@ updates:
     commit-message:
       prefix: 'chore'
       prefix-development: 'chore'
+    # Security-only updates; Renovate handles routine maintenance
     groups:
       typescript-eslint:
         patterns:

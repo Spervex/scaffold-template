@@ -1,4 +1,3 @@
-export { BaseGenerator } from './base.generator.js';
 export { FullstackGenerator } from './fullstack.generator.js';
 export { MernGenerator } from './mern.generator.js';
 export { NextjsGenerator } from './nextjs.generator.js';

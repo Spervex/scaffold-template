@@ -1,13 +1,13 @@
 import { RepoError } from '../types.js';
 
-export type SemVer = {
+type SemVer = {
   major: number;
   minor: number;
   patch: number;
   prerelease?: string;
 };
 
-export function parseVersion(version: string): SemVer {
+function parseVersion(version: string): SemVer {
   const match = version.match(/^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$/);
   if (!match) {
     throw new RepoError(`Invalid semver: "${version}". Expected format: X.Y.Z`, 'INVALID_VERSION');
@@ -20,7 +20,7 @@ export function parseVersion(version: string): SemVer {
   };
 }
 
-export function formatVersion(semver: SemVer): string {
+function formatVersion(semver: SemVer): string {
   const base = `${semver.major}.${semver.minor}.${semver.patch}`;
   return semver.prerelease ? `${base}-${semver.prerelease}` : base;
 }
@@ -31,20 +31,12 @@ export function formatVersion(semver: SemVer): string {
  * If source is 1.3.0 → returns 0.3.0
  * If source is 0.x.y → returns 0.x.y (can't go negative)
  */
-export function lagOneMajor(version: string): string {
+function lagOneMajor(version: string): string {
   const semver = parseVersion(version);
   if (semver.major <= 0) {
     return formatVersion(semver);
   }
   return formatVersion({ ...semver, major: semver.major - 1 });
-}
-
-/**
- * Bumps the major version and resets minor/patch to 0.
- */
-export function bumpMajor(version: string): string {
-  const semver = parseVersion(version);
-  return formatVersion({ major: semver.major + 1, minor: 0, patch: 0 });
 }
 
 /**

@@ -4,7 +4,7 @@ import type { CliOptions, Database, ExtraPackage, FileDefinition } from '../type
 
 // ── Default packages (always included per project type) ──
 
-export const DEFAULT_DEPS = {
+const DEFAULT_DEPS = {
   ALL: {
     zod: '^4.0.1',
     pino: '^10.1.0',
@@ -15,7 +15,7 @@ export const DEFAULT_DEPS = {
   },
 } as const;
 
-export const DEFAULT_DEV_DEPS = {
+const DEFAULT_DEV_DEPS = {
   ALL: {},
   BACKEND: {
     'pino-pretty': '^10.0.0',
@@ -24,9 +24,9 @@ export const DEFAULT_DEV_DEPS = {
 
 // ── Extra category system ──
 
-export type ExtraCategory = 'backend' | 'frontend' | 'infra';
+type ExtraCategory = 'backend' | 'frontend' | 'infra';
 
-export type ExtraMeta = {
+type ExtraMeta = {
   category: ExtraCategory;
   label: string;
   hint: string;
@@ -35,7 +35,7 @@ export type ExtraMeta = {
 
 // ── Extra config map ──
 
-export const EXTRA_CONFIG: Record<
+const EXTRA_CONFIG: Record<
   ExtraPackage,
   {
     deps: Record<string, string>;
@@ -492,23 +492,4 @@ export function addDatabaseDeps(
     pkg.scripts['db:generate'] = 'prisma generate';
     pkg.scripts['db:push'] = 'prisma db push';
   }
-}
-
-export function getExtrasByCategory(options: CliOptions): {
-  backend: ExtraPackage[];
-  frontend: ExtraPackage[];
-  infra: ExtraPackage[];
-} {
-  const result = {
-    backend: [] as ExtraPackage[],
-    frontend: [] as ExtraPackage[],
-    infra: [] as ExtraPackage[],
-  };
-  for (const extra of options.extraPackages) {
-    const config = EXTRA_CONFIG[extra];
-    if (config?.meta.category === 'backend') result.backend.push(extra);
-    else if (config?.meta.category === 'frontend') result.frontend.push(extra);
-    else result.infra.push(extra);
-  }
-  return result;
 }

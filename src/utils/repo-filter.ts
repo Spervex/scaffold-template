@@ -40,7 +40,7 @@ export async function saveFilterConfig(baseDir: string, config: RepoFilterConfig
   logger.success(`Filter config saved to ${filterPath}`);
 }
 
-export function isExcluded(relativePath: string, excludePatterns: string[]): boolean {
+function isExcluded(relativePath: string, excludePatterns: string[]): boolean {
   const normalized = relativePath.replace(/\\/g, '/');
   const parts = normalized.split('/');
   return excludePatterns.some((pattern) => {
@@ -54,28 +54,6 @@ export function isExcluded(relativePath: string, excludePatterns: string[]): boo
 
 export function filterFilesForPublic(trackedFiles: string[], excludePatterns: string[]): string[] {
   return trackedFiles.filter((file) => !isExcluded(file, excludePatterns));
-}
-
-export async function createPublicGitignore(
-  baseDir: string,
-  excludePatterns: string[]
-): Promise<void> {
-  const gitignorePath = path.join(baseDir, '.gitignore');
-  let existing = '';
-  try {
-    existing = await fs.readFile(gitignorePath, 'utf-8');
-  } catch {
-    // No existing .gitignore
-  }
-
-  const publicExcludes = excludePatterns
-    .map((p) => `# Excluded from public repo\n/${p}/`)
-    .join('\n');
-  const content = existing
-    ? `${existing}\n\n# ── Public repo excludes ──\n${publicExcludes}\n`
-    : `# ── Public repo excludes ──\n${publicExcludes}\n`;
-
-  await fs.writeFile(gitignorePath, content, 'utf-8');
 }
 
 export function getPublicExcludeList(config: RepoFilterConfig): string[] {
