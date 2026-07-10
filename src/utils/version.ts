@@ -75,10 +75,10 @@ function lagOneMinor(version: string): string {
 /**
  * Read version from the root setup.config.json
  */
-export async function readSourceVersion(baseDir: string): Promise<string> {
+export async function readSourceVersion(baseDir: string): Promise<string | null> {
   const fs = await import('node:fs/promises');
   const nodePath = await import('node:path');
-  const configPath = nodePath.join(baseDir, '..', 'setup.config.json');
+  const configPath = nodePath.join(baseDir, 'setup.config.json');
   try {
     const content = await fs.readFile(configPath, 'utf-8');
     const config = JSON.parse(content);
@@ -86,8 +86,10 @@ export async function readSourceVersion(baseDir: string): Promise<string> {
     return config.version;
   } catch (err) {
     if (err instanceof RepoError) throw err;
+    // File not found — caller can use initialVersion or fallback
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null;
     throw new RepoError(
-      `Cannot read setup.config.json: ${(err as Error).message}`,
+      `Cannot read setup.config.json at ${configPath}: ${(err as Error).message}`,
       'CONFIG_READ_ERROR'
     );
   }

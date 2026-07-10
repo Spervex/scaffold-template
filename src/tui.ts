@@ -565,6 +565,20 @@ async function repoInitWizard(baseDir: string): Promise<void> {
       })
     );
 
+    const initialVersion = handleCancel(
+      await text({
+        message: 'Initial version',
+        placeholder: '1.0.0',
+        initialValue: '1.0.0',
+        validate: (value) => {
+          if (!value || !/^\d+\.\d+\.\d+$/.test(value.trim())) {
+            return 'Must be a valid semver (e.g., 1.0.0)';
+          }
+          return undefined;
+        },
+      })
+    );
+
     const proceed = handleCancel(
       await confirm({
         message: 'Proceed with creating these repos?',
@@ -590,6 +604,7 @@ async function repoInitWizard(baseDir: string): Promise<void> {
         publicBranch: 'main',
         exclude: excludeStr.split(',').map((s: string) => s.trim()),
         yes: true,
+        initialVersion,
       },
       baseDir
     );
@@ -625,6 +640,20 @@ async function repoInitWizard(baseDir: string): Promise<void> {
       })
     );
 
+    const initialVersion = handleCancel(
+      await text({
+        message: 'Initial version',
+        placeholder: '1.0.0',
+        initialValue: '1.0.0',
+        validate: (value) => {
+          if (!value || !/^\d+\.\d+\.\d+$/.test(value.trim())) {
+            return 'Must be a valid semver (e.g., 1.0.0)';
+          }
+          return undefined;
+        },
+      })
+    );
+
     const s = spinner();
     s.start('Initializing dual-repo setup...');
     await repoInit(
@@ -638,6 +667,7 @@ async function repoInitWizard(baseDir: string): Promise<void> {
         publicBranch: 'main',
         exclude: excludeStr.split(',').map((s: string) => s.trim()),
         yes: true,
+        initialVersion,
       },
       baseDir
     );

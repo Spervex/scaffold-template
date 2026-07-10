@@ -48,8 +48,8 @@ export async function repoSync(options: RepoSyncOptions, baseDir: string): Promi
   const excludePatterns = filterConfig.publicRepo.exclude;
   logger.info(`  Excluding from public: ${excludePatterns.join(', ')}`);
 
-  // 4. Read source version
-  const sourceVersion = await readSourceVersion(baseDir);
+  // 4. Read source version (fallback to 1.0.0 if no setup.config.json)
+  const sourceVersion = (await readSourceVersion(baseDir)) ?? '1.0.0';
   const publicVersion = applyVersionOffset(sourceVersion, filterConfig.publicRepo.versionOffset);
   logger.info(`  Source version: ${sourceVersion} → Public version: ${publicVersion}`);
 

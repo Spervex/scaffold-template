@@ -67,6 +67,7 @@ export async function repoStatus(baseDir: string): Promise<void> {
   // Version info
   try {
     const sourceVersion = await readSourceVersion(baseDir);
+    if (!sourceVersion) return; // No version configured yet
     const filterConfig = await loadFilterConfig(rootDir);
     const publicVersion = applyVersionOffset(sourceVersion, filterConfig.publicRepo.versionOffset);
     logger.info('');

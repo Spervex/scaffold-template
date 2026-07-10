@@ -166,8 +166,8 @@ export async function repoInit(options: RepoInitOptions, baseDir: string): Promi
       }
     }
 
-    // 5. Read source version
-    const sourceVersion = options.initialVersion ?? (await readSourceVersion(baseDir));
+    // 5. Read source version (fallback to 1.0.0 if no setup.config.json)
+    const sourceVersion = options.initialVersion ?? (await readSourceVersion(baseDir)) ?? '1.0.0';
 
     // 6. Init git repo (if not already)
     if (!alreadyRepo) {
@@ -361,8 +361,8 @@ Local working state with full tree (not pushed to either remote)`
       }
     }
 
-    // Read source version
-    const sourceVersion = options.initialVersion ?? (await readSourceVersion(baseDir));
+    // Read source version (fallback to 1.0.0 if no setup.config.json)
+    const sourceVersion = options.initialVersion ?? (await readSourceVersion(baseDir)) ?? '1.0.0';
 
     // Init git repo
     if (!alreadyRepo) {
