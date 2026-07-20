@@ -48,7 +48,7 @@
     "cz-conventional-changelog": "3.3.0",
     "eslint": "^10.6.0",
     "eslint-config-prettier": "10.1.8",
-    "eslint-plugin-simple-import-sort": "13.0.0",
+    "eslint-plugin-simple-import-sort": "14.0.0",
     "husky": "9.1.7",
     "knip": "6.25.0",
     "lint-staged": "17.0.8",
